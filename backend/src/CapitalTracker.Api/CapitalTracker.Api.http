@@ -1,0 +1,6 @@
+@CapitalTracker.Api_HostAddress = http://localhost:5240
+
+GET {{CapitalTracker.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

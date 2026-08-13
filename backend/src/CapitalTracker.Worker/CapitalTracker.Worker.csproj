@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-CapitalTracker.Worker-143b5aa3-4ea4-4686-acce-8e415cb35bc7</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Hangfire.Core" Version="1.8.24" />
+    <PackageReference Include="Hangfire.PostgreSql" Version="1.21.1" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CapitalTracker.Application\CapitalTracker.Application.csproj" />
+    <ProjectReference Include="..\CapitalTracker.Infrastructure\CapitalTracker.Infrastructure.csproj" />
+    <ProjectReference Include="..\CapitalTracker.Domain\CapitalTracker.Domain.csproj" />
+  </ItemGroup>
+</Project>
