@@ -24,6 +24,9 @@ services:
         condition: service_healthy
     environment:
       ConnectionStrings__Default: "Host=postgres;Port=5432;Database=capital_tracker;Username=postgres;Password=postgres"
+      Jwt__Secret: "${JWT_SECRET:?Set JWT_SECRET in your .env file}"
+      InitialUser__Email: "${INITIAL_USER_EMAIL:?Set INITIAL_USER_EMAIL in your .env file}"
+      InitialUser__Password: "${INITIAL_USER_PASSWORD:?Set INITIAL_USER_PASSWORD in your .env file}"
     ports:
       - "5000:8080"
 

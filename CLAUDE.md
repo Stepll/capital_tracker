@@ -48,7 +48,24 @@ Account (Brokerage/Bank/RealEstate/Cash/Crypto)
       └─ ValuationSnapshot (вартість на дату; IsManual для нерухомості)
 Sector (довідник галузей — для групування холдингів в аналітиці)
 AiInsight (кешований згенерований звіт по сектору: текст + SourceUrls)
+User (єдиний власник застосунку — не multi-tenant, лише щоб міняти пароль без редеплою)
 ```
+
+## Auth
+
+Застосунок — персональний і виставлений в інтернет, тож мінімальний auth
+всередині застосунку (не на рівні інфраструктури):
+
+- Один рядок у таблиці `Users`, пароль хешується BCrypt (`Infrastructure/Auth/BCryptPasswordHasher`)
+- `POST /api/auth/login` (`[AllowAnonymous]`) → видає JWT (`Infrastructure/Auth/JwtTokenService`)
+- Усі інші ендпоінти закриті за замовчуванням через `FallbackPolicy` в `Program.cs`
+  (`RequireAuthenticatedUser`) — щоб новий контролер не забули захистити, треба
+  явно ставити `[AllowAnonymous]`, а не навпаки
+- `UserSeeder` створює єдиного користувача при старті з `InitialUser:Email` /
+  `InitialUser:Password` (тільки якщо в БД ще нема жодного користувача)
+- Секрети (`Jwt:Secret`, `InitialUser:*`) — **тільки через env vars / `.env`**,
+  ніколи в `appsettings.json`. Приклад — `.env.example`. Виняток —
+  `appsettings.Development.json` з dev-only секретом для локальної розробки.
 
 Принципи:
 - `Domain` не залежить ні від чого — чисті сутності й енами.
@@ -98,5 +115,6 @@ docker compose up --build
 3. **AI-аналітика** — секторальна алокація, інтеграція новин, генерація інсайтів
 4. **Полірування** — нерухомість (ручні оцінки), борги/liabilities, експорт звітів
 
-Зараз реалізовано лише каркас (Фаза 0): проєкти, доменні сутності, DbContext,
+Зараз реалізовано каркас (Фаза 0) + базовий auth: проєкти, доменні сутності,
+DbContext з міграцією `InitialCreate`, JWT-логін для єдиного користувача,
 health-check ендпоінт, порожній React-фронтенд, docker-compose.

@@ -1,10 +1,11 @@
+using CapitalTracker.Application.Common.Interfaces;
 using CapitalTracker.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace CapitalTracker.Infrastructure.Persistence;
 
 public class CapitalTrackerDbContext(DbContextOptions<CapitalTrackerDbContext> options)
-    : DbContext(options)
+    : DbContext(options), IApplicationDbContext
 {
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<Holding> Holdings => Set<Holding>();
@@ -12,6 +13,7 @@ public class CapitalTrackerDbContext(DbContextOptions<CapitalTrackerDbContext> o
     public DbSet<ValuationSnapshot> ValuationSnapshots => Set<ValuationSnapshot>();
     public DbSet<Sector> Sectors => Set<Sector>();
     public DbSet<AiInsight> AiInsights => Set<AiInsight>();
+    public DbSet<User> Users => Set<User>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
