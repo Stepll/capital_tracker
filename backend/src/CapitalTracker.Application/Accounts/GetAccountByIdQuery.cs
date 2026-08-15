@@ -16,9 +16,12 @@ public class GetAccountByIdQueryHandler(IApplicationDbContext db)
         if (account is null)
             return null;
 
-        var holdings = await HoldingQueries.WithCurrentValue(db, request.Id)
+        // Ordered client-side: EF Core can't translate an OrderBy applied after
+        // a Select into a constructor-based DTO like HoldingDto, and holding
+        // counts per account are small enough that this is a non-issue.
+        var holdings = (await HoldingQueries.WithCurrentValue(db, request.Id).ToListAsync(cancellationToken))
             .OrderBy(h => h.CreatedAt)
-            .ToListAsync(cancellationToken);
+            .ToList();
 
         return new AccountDetailDto(
             account.Id, account.Name, account.Type, account.Currency, account.CreatedAt, holdings);
