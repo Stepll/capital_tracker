@@ -3,25 +3,24 @@ import { Link } from "react-router-dom";
 import { useAccounts, useDeleteAccount } from "../accounts/useAccounts";
 import { AccountCard } from "../accounts/AccountCard";
 import { AddAccountModal } from "../accounts/AddAccountModal";
-import { useSettings } from "../settings/useSettings";
+import { useDashboardSummary } from "./useDashboardSummary";
+import { AllocationChart } from "./AllocationChart";
+import { NetWorthChart } from "./NetWorthChart";
 import { useAuth } from "../../shared/auth/AuthContext";
 import styles from "./DashboardPage.module.css";
+import chartStyles from "./Charts.module.css";
 
 const CURRENCY_SYMBOLS: Record<string, string> = { UAH: "₴", USD: "$", EUR: "€" };
 
 export function DashboardPage() {
   const { data: accounts, isLoading } = useAccounts();
-  const { data: settings } = useSettings();
+  const { data: summary } = useDashboardSummary();
   const deleteAccount = useDeleteAccount();
   const { logout } = useAuth();
   const [isModalOpen, setModalOpen] = useState(false);
 
-  const currencySymbol = settings ? CURRENCY_SYMBOLS[settings.displayCurrency] ?? settings.displayCurrency : "";
-
-  // Real net worth needs valuation snapshots (Phase 2) — for now every account
-  // is freshly created with no holdings, so this is honestly zero rather than
-  // pretending to sum something we don't track yet.
-  const totalLabel = accounts && accounts.length > 0 ? "0" : "—";
+  const currencySymbol = summary ? CURRENCY_SYMBOLS[summary.currency] ?? summary.currency : "";
+  const totalLabel = summary ? summary.totalNetWorth.toLocaleString("uk-UA") : "—";
 
   return (
     <div className={styles.page}>
@@ -41,6 +40,19 @@ export function DashboardPage() {
           </button>
         </div>
       </header>
+
+      {summary && (summary.allocationByType.length > 0 || summary.netWorthHistory.length > 0) && (
+        <div className={chartStyles.chartsGrid}>
+          <div className={chartStyles.card}>
+            <h2 className={chartStyles.cardTitle}>Розподіл капіталу</h2>
+            <AllocationChart data={summary.allocationByType} currency={summary.currency} />
+          </div>
+          <div className={chartStyles.card}>
+            <h2 className={chartStyles.cardTitle}>Динаміка капіталу</h2>
+            <NetWorthChart data={summary.netWorthHistory} currency={summary.currency} />
+          </div>
+        </div>
+      )}
 
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
