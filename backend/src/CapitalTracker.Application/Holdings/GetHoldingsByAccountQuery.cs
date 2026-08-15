@@ -14,9 +14,10 @@ public class GetHoldingsByAccountQueryHandler(IApplicationDbContext db)
 }
 
 /// <summary>
-/// Shared query shape for "holding + its most recent valuation" — a holding
-/// might not have any snapshot yet (shouldn't happen in practice since
-/// creation always writes one, but defensively defaults to 0).
+/// Shared query shape for "holding + its most recent valuation". Uses a
+/// correlated subquery per holding (order by date desc, take first) rather
+/// than a GroupBy+GroupJoin — the latter doesn't reliably translate to SQL
+/// through Npgsql's EF Core provider once composed into a larger query.
 /// </summary>
 internal static class HoldingQueries
 {
@@ -26,27 +27,21 @@ internal static class HoldingQueries
             ? db.Holdings.AsQueryable()
             : db.Holdings.Where(h => h.AccountId == accountId);
 
-        var latestDatePerHolding = db.ValuationSnapshots
-            .GroupBy(v => v.HoldingId)
-            .Select(g => new { HoldingId = g.Key, Date = g.Max(v => v.Date) });
-
-        return holdings
-            .GroupJoin(
-                db.ValuationSnapshots.Join(
-                    latestDatePerHolding,
-                    v => new { v.HoldingId, v.Date },
-                    latest => new { latest.HoldingId, latest.Date },
-                    (v, _) => v),
-                h => h.Id,
-                v => v.HoldingId,
-                (h, valuations) => new { Holding = h, Valuation = valuations.FirstOrDefault() })
-            .Select(x => new HoldingDto(
-                x.Holding.Id,
-                x.Holding.AccountId,
-                x.Holding.Name,
-                x.Holding.Symbol,
-                x.Valuation != null ? x.Valuation.Currency : x.Holding.Account!.Currency,
-                x.Valuation != null ? x.Valuation.Value : 0,
-                x.Holding.CreatedAt));
+        return holdings.Select(h => new HoldingDto(
+            h.Id,
+            h.AccountId,
+            h.Name,
+            h.Symbol,
+            db.ValuationSnapshots
+                .Where(v => v.HoldingId == h.Id)
+                .OrderByDescending(v => v.Date)
+                .Select(v => v.Currency)
+                .FirstOrDefault() ?? h.Account!.Currency,
+            db.ValuationSnapshots
+                .Where(v => v.HoldingId == h.Id)
+                .OrderByDescending(v => v.Date)
+                .Select(v => (decimal?)v.Value)
+                .FirstOrDefault() ?? 0m,
+            h.CreatedAt));
     }
 }
