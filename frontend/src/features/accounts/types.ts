@@ -6,6 +6,7 @@ export interface Account {
   type: AccountType;
   currency: string;
   createdAt: string;
+  totalValue: number;
 }
 
 export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {

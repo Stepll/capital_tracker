@@ -18,6 +18,8 @@ public class Holding
     public Guid? SectorId { get; set; }
     public Sector? Sector { get; set; }
 
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
     public List<Transaction> Transactions { get; set; } = [];
     public List<ValuationSnapshot> ValuationSnapshots { get; set; } = [];
 }

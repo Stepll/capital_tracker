@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { ACCOUNT_TYPE_LABELS, type Account } from "./types";
 import styles from "./AccountCard.module.css";
 
@@ -17,7 +18,7 @@ interface Props {
 
 export function AccountCard({ account, onDelete }: Props) {
   return (
-    <div className={styles.card}>
+    <Link to={`/accounts/${account.id}`} className={styles.card}>
       <div className={styles.icon} style={{ background: TYPE_COLOR[account.type] }}>
         {account.name.charAt(0).toUpperCase()}
       </div>
@@ -26,15 +27,20 @@ export function AccountCard({ account, onDelete }: Props) {
         <span className={styles.type}>{ACCOUNT_TYPE_LABELS[account.type]}</span>
       </div>
       <div className={styles.right}>
-        <span className={styles.balance}>0 {account.currency}</span>
+        <span className={styles.balance}>
+          {account.totalValue.toLocaleString("uk-UA")} {account.currency}
+        </span>
         <button
           className={styles.delete}
-          onClick={() => onDelete(account.id)}
+          onClick={(e) => {
+            e.preventDefault();
+            onDelete(account.id);
+          }}
           aria-label="Видалити рахунок"
         >
           ✕
         </button>
       </div>
-    </div>
+    </Link>
   );
 }

@@ -12,6 +12,7 @@ public interface IApplicationDbContext
     DbSet<User> Users { get; }
     DbSet<Account> Accounts { get; }
     DbSet<Holding> Holdings { get; }
+    DbSet<ValuationSnapshot> ValuationSnapshots { get; }
     DbSet<ExchangeRate> ExchangeRates { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);

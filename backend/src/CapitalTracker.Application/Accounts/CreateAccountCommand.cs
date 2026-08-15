@@ -23,6 +23,6 @@ public class CreateAccountCommandHandler(IApplicationDbContext db)
         db.Accounts.Add(account);
         await db.SaveChangesAsync(cancellationToken);
 
-        return new AccountDto(account.Id, account.Name, account.Type, account.Currency, account.CreatedAt);
+        return new AccountDto(account.Id, account.Name, account.Type, account.Currency, account.CreatedAt, 0);
     }
 }

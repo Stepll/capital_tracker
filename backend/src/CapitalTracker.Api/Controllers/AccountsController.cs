@@ -15,6 +15,13 @@ public class AccountsController(ISender sender) : ControllerBase
     public async Task<ActionResult<List<AccountDto>>> GetAll() =>
         Ok(await sender.Send(new GetAccountsQuery()));
 
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<AccountDetailDto>> GetById(Guid id)
+    {
+        var account = await sender.Send(new GetAccountByIdQuery(id));
+        return account is null ? NotFound() : Ok(account);
+    }
+
     [HttpPost]
     public async Task<ActionResult<AccountDto>> Create(CreateAccountRequest request)
     {

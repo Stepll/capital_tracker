@@ -4,6 +4,7 @@ import { ProtectedRoute } from "./shared/auth/ProtectedRoute";
 import { LoginPage } from "./features/auth/LoginPage";
 import { DashboardPage } from "./features/dashboard/DashboardPage";
 import { SettingsPage } from "./features/settings/SettingsPage";
+import { AccountDetailPage } from "./features/accounts/AccountDetailPage";
 
 function App() {
   return (
@@ -24,6 +25,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <SettingsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/accounts/:id"
+            element={
+              <ProtectedRoute>
+                <AccountDetailPage />
               </ProtectedRoute>
             }
           />
