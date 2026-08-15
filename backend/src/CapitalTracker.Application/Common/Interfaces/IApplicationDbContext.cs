@@ -10,6 +10,8 @@ namespace CapitalTracker.Application.Common.Interfaces;
 public interface IApplicationDbContext
 {
     DbSet<User> Users { get; }
+    DbSet<Account> Accounts { get; }
+    DbSet<Holding> Holdings { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }
