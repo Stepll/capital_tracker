@@ -1,4 +1,5 @@
 using CapitalTracker.Application.Holdings;
+using CapitalTracker.Application.Insights;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -59,6 +60,14 @@ public class HoldingsController(ISender sender) : ControllerBase
     [HttpPut("holdings/{id:guid}/sector")]
     public async Task<ActionResult<HoldingDetailDto>> AssignSector(Guid id, AssignSectorRequest request) =>
         Ok(await sender.Send(new AssignSectorCommand(id, request.SectorId)));
+
+    [HttpGet("holdings/{id:guid}/insights")]
+    public async Task<ActionResult<List<AiInsightDto>>> GetInsights(Guid id) =>
+        Ok(await sender.Send(new GetHoldingInsightsQuery(id)));
+
+    [HttpPost("holdings/{id:guid}/insights/generate")]
+    public async Task<ActionResult<AiInsightDto>> GenerateInsight(Guid id) =>
+        Ok(await sender.Send(new GenerateHoldingInsightCommand(id)));
 
     [HttpDelete("holdings/{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)

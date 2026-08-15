@@ -1,10 +1,40 @@
 .page {
-  max-width: 560px;
+  max-width: 1160px;
   margin: 0 auto;
   padding: 40px 20px 80px;
   display: flex;
   flex-direction: column;
+  gap: 24px;
+}
+
+/* Row 2: left column (chart, valuation, details) + right column (AI panel) */
+.contentGrid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
   gap: 20px;
+  align-items: start;
+}
+
+.leftColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.rightColumn {
+  position: sticky;
+  top: 24px;
+}
+
+@media (max-width: 900px) {
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .rightColumn {
+    position: static;
+  }
 }
 
 .header {
@@ -97,14 +127,6 @@
   border-color: var(--accent);
 }
 
-.select {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 11px 12px;
-  outline: none;
-}
-
 .primaryButton {
   background: var(--accent);
   color: white;
@@ -136,23 +158,67 @@
   cursor: not-allowed;
 }
 
-.aiRow {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
 .hint {
   color: var(--text-faint);
   font-size: 12px;
 }
 
-.insightMessage {
+.insightsPanel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.latestInsight {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.latestInsightLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.insightDate {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.insightSummary {
   font-size: 13px;
   color: var(--text-dim);
   line-height: 1.5;
-  padding-top: 8px;
+}
+
+.insightHistory {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
   border-top: 1px solid var(--border);
+}
+
+.insightHistoryItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.insightHistoryItem:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
 .dateInput {

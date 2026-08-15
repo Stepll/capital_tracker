@@ -52,15 +52,6 @@ export function useAddValuation(holdingId: string) {
   });
 }
 
-export function useAssignSector(holdingId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (sectorId: string | null) =>
-      (await apiClient.put<HoldingDetail>(`/holdings/${holdingId}/sector`, { sectorId })).data,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["holdings", holdingId] }),
-  });
-}
-
 export interface UpdateHoldingDetailsInput {
   quantity: number | null;
   notes: string | null;

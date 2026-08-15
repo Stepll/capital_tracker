@@ -31,6 +31,7 @@ public class GenerateInsightCommandHandler(IApplicationDbContext db)
         db.AiInsights.Add(insight);
         await db.SaveChangesAsync(cancellationToken);
 
-        return new AiInsightDto(insight.Id, sector.Id, sector.Name, insight.GeneratedAt, insight.Summary, insight.SourceUrls);
+        return new AiInsightDto(
+            insight.Id, sector.Id, sector.Name, null, insight.GeneratedAt, insight.Summary, insight.SourceUrls);
     }
 }

@@ -7,9 +7,10 @@ import styles from "../../shared/ui/Charts.module.css";
 interface Props {
   data: AllocationItem[];
   currency: string;
+  size?: "normal" | "large";
 }
 
-export function AllocationChart({ data, currency }: Props) {
+export function AllocationChart({ data, currency, size = "normal" }: Props) {
   if (data.length === 0) {
     return <p className={styles.empty}>Ще немає активів для розподілу.</p>;
   }
@@ -20,15 +21,20 @@ export function AllocationChart({ data, currency }: Props) {
     color: ACCOUNT_TYPE_COLORS[item.type],
   }));
 
+  const isLarge = size === "large";
+  const height = isLarge ? 420 : 260;
+  const innerRadius = isLarge ? 100 : 60;
+  const outerRadius = isLarge ? 160 : 95;
+
   return (
-    <ResponsiveContainer width="100%" height={260}>
+    <ResponsiveContainer width="100%" height={height}>
       <PieChart>
         <Pie
           data={chartData}
           dataKey="value"
           nameKey="name"
-          innerRadius={60}
-          outerRadius={95}
+          innerRadius={innerRadius}
+          outerRadius={outerRadius}
           paddingAngle={2}
           strokeWidth={2}
           stroke="var(--surface)"

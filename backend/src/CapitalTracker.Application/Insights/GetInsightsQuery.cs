@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CapitalTracker.Application.Insights;
 
+/// <summary>Sector-scoped insights only — see GetHoldingInsightsQuery for the per-asset feed.</summary>
 public record GetInsightsQuery : IRequest<List<AiInsightDto>>;
 
 public class GetInsightsQueryHandler(IApplicationDbContext db)
@@ -12,14 +13,14 @@ public class GetInsightsQueryHandler(IApplicationDbContext db)
     public async Task<List<AiInsightDto>> Handle(GetInsightsQuery request, CancellationToken cancellationToken)
     {
         // Fetched flat and ordered client-side — see the note in GetHoldingByIdQuery.
-        var insights = await db.AiInsights.ToListAsync(cancellationToken);
+        var insights = await db.AiInsights.Where(i => i.SectorId != null).ToListAsync(cancellationToken);
         var sectorNames = await db.Sectors.ToDictionaryAsync(s => s.Id, s => s.Name, cancellationToken);
 
         return insights
             .OrderByDescending(i => i.GeneratedAt)
             .Select(i => new AiInsightDto(
-                i.Id, i.SectorId, sectorNames.GetValueOrDefault(i.SectorId, "?"),
-                i.GeneratedAt, i.Summary, i.SourceUrls))
+                i.Id, i.SectorId, sectorNames.GetValueOrDefault(i.SectorId!.Value, "?"),
+                i.HoldingId, i.GeneratedAt, i.Summary, i.SourceUrls))
             .ToList();
     }
 }

@@ -44,16 +44,10 @@ export function DashboardPage() {
         </div>
       </header>
 
-      {summary && (summary.allocationByType.length > 0 || summary.netWorthHistory.length > 0) && (
-        <div className={chartStyles.chartsGrid}>
-          <div className={chartStyles.card}>
-            <h2 className={chartStyles.cardTitle}>Розподіл капіталу</h2>
-            <AllocationChart data={summary.allocationByType} currency={summary.currency} />
-          </div>
-          <div className={chartStyles.card}>
-            <h2 className={chartStyles.cardTitle}>Динаміка капіталу</h2>
-            <ValueOverTimeChart data={summary.netWorthHistory} currency={summary.currency} />
-          </div>
+      {summary && summary.allocationByType.length > 0 && (
+        <div className={chartStyles.card}>
+          <h2 className={chartStyles.cardTitle}>Розподіл капіталу</h2>
+          <AllocationChart data={summary.allocationByType} currency={summary.currency} size="large" />
         </div>
       )}
 
@@ -86,6 +80,13 @@ export function DashboardPage() {
           ))}
         </div>
       </section>
+
+      {summary && summary.netWorthHistory.length > 0 && (
+        <div className={chartStyles.card}>
+          <h2 className={chartStyles.cardTitle}>Динаміка капіталу</h2>
+          <ValueOverTimeChart data={summary.netWorthHistory} currency={summary.currency} />
+        </div>
+      )}
 
       {isModalOpen && <AddAccountModal onClose={() => setModalOpen(false)} />}
     </div>
