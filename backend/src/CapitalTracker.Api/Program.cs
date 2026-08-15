@@ -39,6 +39,10 @@ builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        // Without this, the handler silently remaps "sub" to
+        // ClaimTypes.NameIdentifier, so User.FindFirstValue(JwtRegisteredClaimNames.Sub)
+        // returns null even though the token has a "sub" claim.
+        options.MapInboundClaims = false;
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
