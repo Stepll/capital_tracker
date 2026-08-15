@@ -38,7 +38,10 @@ export function useGenerateHoldingInsight(holdingId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () =>
-      (await apiClient.post<AiInsight>(`/holdings/${holdingId}/insights/generate`)).data,
+      // Explicit empty body: a bodyless POST has no Content-Length/chunked
+      // framing, which nginx rejects with a 400 before it even reaches the
+      // app — axios sends one fine on its own, but this stays explicit.
+      (await apiClient.post<AiInsight>(`/holdings/${holdingId}/insights/generate`, {})).data,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["holdings", holdingId, "insights"] }),
   });
 }
