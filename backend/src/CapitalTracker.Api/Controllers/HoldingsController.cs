@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace CapitalTracker.Api.Controllers;
 
 public record CreateHoldingRequest(string Name, string? Symbol, decimal InitialValue);
+public record AddValuationRequest(decimal Value);
+public record AssignSectorRequest(Guid? SectorId);
 
 [ApiController]
 [Route("api")]
@@ -21,6 +23,21 @@ public class HoldingsController(ISender sender) : ControllerBase
             new CreateHoldingCommand(accountId, request.Name, request.Symbol, request.InitialValue));
         return CreatedAtAction(nameof(GetByAccount), new { accountId }, holding);
     }
+
+    [HttpGet("holdings/{id:guid}")]
+    public async Task<ActionResult<HoldingDetailDto>> GetById(Guid id)
+    {
+        var holding = await sender.Send(new GetHoldingByIdQuery(id));
+        return holding is null ? NotFound() : Ok(holding);
+    }
+
+    [HttpPost("holdings/{id:guid}/valuations")]
+    public async Task<ActionResult<HoldingDetailDto>> AddValuation(Guid id, AddValuationRequest request) =>
+        Ok(await sender.Send(new AddValuationCommand(id, request.Value)));
+
+    [HttpPut("holdings/{id:guid}/sector")]
+    public async Task<ActionResult<HoldingDetailDto>> AssignSector(Guid id, AssignSectorRequest request) =>
+        Ok(await sender.Send(new AssignSectorCommand(id, request.SectorId)));
 
     [HttpDelete("holdings/{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)

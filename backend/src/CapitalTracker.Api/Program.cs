@@ -31,6 +31,7 @@ builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptio
 builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
 builder.Services.AddScoped<UserSeeder>();
+builder.Services.AddScoped<SectorSeeder>();
 
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
     ?? throw new InvalidOperationException("Jwt configuration section is missing.");
@@ -90,6 +91,7 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<CapitalTrackerDbContext>();
     await db.Database.MigrateAsync();
     await scope.ServiceProvider.GetRequiredService<UserSeeder>().SeedAsync();
+    await scope.ServiceProvider.GetRequiredService<SectorSeeder>().SeedAsync();
 }
 
 // Configure the HTTP request pipeline.

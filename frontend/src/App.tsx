@@ -5,6 +5,8 @@ import { LoginPage } from "./features/auth/LoginPage";
 import { DashboardPage } from "./features/dashboard/DashboardPage";
 import { SettingsPage } from "./features/settings/SettingsPage";
 import { AccountDetailPage } from "./features/accounts/AccountDetailPage";
+import { HoldingDetailPage } from "./features/holdings/HoldingDetailPage";
+import { InsightsPage } from "./features/insights/InsightsPage";
 
 function App() {
   return (
@@ -33,6 +35,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <AccountDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/holdings/:id"
+            element={
+              <ProtectedRoute>
+                <HoldingDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/insights"
+            element={
+              <ProtectedRoute>
+                <InsightsPage />
               </ProtectedRoute>
             }
           />

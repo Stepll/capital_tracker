@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import type { Holding } from "./types";
 import styles from "./HoldingRow.module.css";
 
@@ -8,7 +9,7 @@ interface Props {
 
 export function HoldingRow({ holding, onDelete }: Props) {
   return (
-    <div className={styles.row}>
+    <Link to={`/holdings/${holding.id}`} className={styles.row}>
       <div className={styles.info}>
         <span className={styles.name}>{holding.name}</span>
         {holding.symbol && <span className={styles.symbol}>{holding.symbol}</span>}
@@ -19,12 +20,15 @@ export function HoldingRow({ holding, onDelete }: Props) {
         </span>
         <button
           className={styles.delete}
-          onClick={() => onDelete(holding.id)}
+          onClick={(e) => {
+            e.preventDefault();
+            onDelete(holding.id);
+          }}
           aria-label="Видалити актив"
         >
           ✕
         </button>
       </div>
-    </div>
+    </Link>
   );
 }

@@ -2,7 +2,7 @@ import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recha
 import { ACCOUNT_TYPE_COLORS } from "../accounts/accountTypeColors";
 import { ACCOUNT_TYPE_LABELS } from "../accounts/types";
 import type { AllocationItem } from "./useDashboardSummary";
-import styles from "./Charts.module.css";
+import styles from "../../shared/ui/Charts.module.css";
 
 interface Props {
   data: AllocationItem[];

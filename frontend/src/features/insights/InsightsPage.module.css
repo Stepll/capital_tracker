@@ -1,0 +1,114 @@
+.page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 40px 20px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.back {
+  color: var(--text-dim);
+  font-size: 13px;
+  text-decoration: none;
+  width: fit-content;
+  margin-bottom: 10px;
+}
+
+.back:hover {
+  color: var(--text);
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.subtitle {
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.sectorGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sectorButton {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 9px 14px;
+  font-size: 13px;
+}
+
+.sectorButton:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.sectorButton:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.feed {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.feedTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.hint {
+  color: var(--text-faint);
+  font-size: 13px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.cardSector {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.cardDate {
+  color: var(--text-faint);
+}
+
+.cardSummary {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}

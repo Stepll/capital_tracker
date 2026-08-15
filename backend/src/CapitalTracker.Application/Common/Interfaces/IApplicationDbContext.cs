@@ -14,6 +14,9 @@ public interface IApplicationDbContext
     DbSet<Holding> Holdings { get; }
     DbSet<ValuationSnapshot> ValuationSnapshots { get; }
     DbSet<ExchangeRate> ExchangeRates { get; }
+    DbSet<Sector> Sectors { get; }
+    DbSet<AiInsight> AiInsights { get; }
+    DbSet<Transaction> Transactions { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

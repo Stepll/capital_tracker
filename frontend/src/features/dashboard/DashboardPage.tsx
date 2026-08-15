@@ -5,10 +5,10 @@ import { AccountCard } from "../accounts/AccountCard";
 import { AddAccountModal } from "../accounts/AddAccountModal";
 import { useDashboardSummary } from "./useDashboardSummary";
 import { AllocationChart } from "./AllocationChart";
-import { NetWorthChart } from "./NetWorthChart";
+import { ValueOverTimeChart } from "../../shared/ui/ValueOverTimeChart";
 import { useAuth } from "../../shared/auth/AuthContext";
 import styles from "./DashboardPage.module.css";
-import chartStyles from "./Charts.module.css";
+import chartStyles from "../../shared/ui/Charts.module.css";
 
 const CURRENCY_SYMBOLS: Record<string, string> = { UAH: "₴", USD: "$", EUR: "€" };
 
@@ -32,6 +32,9 @@ export function DashboardPage() {
           </h1>
         </div>
         <div className={styles.headerActions}>
+          <Link to="/insights" className={styles.settingsLink}>
+            AI-аналітика
+          </Link>
           <Link to="/settings" className={styles.settingsLink}>
             Налаштування
           </Link>
@@ -49,7 +52,7 @@ export function DashboardPage() {
           </div>
           <div className={chartStyles.card}>
             <h2 className={chartStyles.cardTitle}>Динаміка капіталу</h2>
-            <NetWorthChart data={summary.netWorthHistory} currency={summary.currency} />
+            <ValueOverTimeChart data={summary.netWorthHistory} currency={summary.currency} />
           </div>
         </div>
       )}

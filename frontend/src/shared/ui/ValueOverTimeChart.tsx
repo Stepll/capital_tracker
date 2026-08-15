@@ -7,21 +7,27 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type { NetWorthPoint } from "./useDashboardSummary";
 import styles from "./Charts.module.css";
 
+export interface ValuePoint {
+  date: string;
+  value: number;
+}
+
 interface Props {
-  data: NetWorthPoint[];
+  data: ValuePoint[];
   currency: string;
+  emptyMessage?: string;
 }
 
 const dateFormatter = new Intl.DateTimeFormat("uk-UA", { day: "2-digit", month: "short" });
 
-export function NetWorthChart({ data, currency }: Props) {
+export function ValueOverTimeChart({ data, currency, emptyMessage }: Props) {
   if (data.length < 2) {
     return (
       <p className={styles.empty}>
-        Потрібно принаймні дві точки в часі (онови вартість активів пізніше, щоб побачити динаміку).
+        {emptyMessage ??
+          "Потрібно принаймні дві точки в часі (онови вартість пізніше, щоб побачити динаміку)."}
       </p>
     );
   }
