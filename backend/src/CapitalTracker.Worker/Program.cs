@@ -42,7 +42,10 @@ using (var scope = host.Services.CreateScope())
     }
 }
 
-RecurringJob.AddOrUpdate<ExchangeRateSyncService>(
+// The static RecurringJob API requires JobStorage.Current, which isn't set
+// this early — use the DI-registered manager instead, as Hangfire itself
+// recommends for .NET Generic Host apps.
+host.Services.GetRequiredService<IRecurringJobManager>().AddOrUpdate<ExchangeRateSyncService>(
     "sync-exchange-rates",
     service => service.SyncAsync(default),
     Cron.Daily);
