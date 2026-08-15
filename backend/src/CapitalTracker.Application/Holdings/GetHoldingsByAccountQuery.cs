@@ -27,6 +27,10 @@ internal static class HoldingQueries
             ? db.Holdings.AsQueryable()
             : db.Holdings.Where(h => h.AccountId == accountId);
 
+        // Every holding gets an initial ValuationSnapshot at creation time (see
+        // CreateHoldingCommand), so FirstOrDefault() only hits its fallback for
+        // data created some other way — good enough to default to "" / 0 rather
+        // than pull in the Account navigation, which broke translation here.
         return holdings.Select(h => new HoldingDto(
             h.Id,
             h.AccountId,
@@ -36,7 +40,7 @@ internal static class HoldingQueries
                 .Where(v => v.HoldingId == h.Id)
                 .OrderByDescending(v => v.Date)
                 .Select(v => v.Currency)
-                .FirstOrDefault() ?? h.Account!.Currency,
+                .FirstOrDefault() ?? "",
             db.ValuationSnapshots
                 .Where(v => v.HoldingId == h.Id)
                 .OrderByDescending(v => v.Date)
