@@ -12,6 +12,8 @@ frontend/.vite/
 .env
 .env.*
 !.env.example
+# Not a secret — just the public API URL baked into the frontend build.
+!frontend/.env.production
 
 # OS / editor
 .DS_Store

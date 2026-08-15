@@ -57,6 +57,25 @@ builder.Services.AddAuthorization(options =>
         .Build();
 });
 
+// Frontend is deployed separately (Vercel), so it's a different origin — allow it,
+// plus local dev, plus any Vercel preview deployment (random *.vercel.app subdomains).
+var configuredOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+const string CorsPolicy = "Frontend";
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(CorsPolicy, policy =>
+    {
+        policy
+            .SetIsOriginAllowed(origin =>
+                configuredOrigins.Contains(origin)
+                || origin is "http://localhost:5173" or "http://localhost:3000"
+                || Uri.TryCreate(origin, UriKind.Absolute, out var uri)
+                    && uri.Host.EndsWith(".vercel.app", StringComparison.OrdinalIgnoreCase))
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -74,6 +93,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors(CorsPolicy);
 
 app.UseAuthentication();
 app.UseAuthorization();
