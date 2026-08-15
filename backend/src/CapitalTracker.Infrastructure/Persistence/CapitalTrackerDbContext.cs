@@ -14,6 +14,7 @@ public class CapitalTrackerDbContext(DbContextOptions<CapitalTrackerDbContext> o
     public DbSet<Sector> Sectors => Set<Sector>();
     public DbSet<AiInsight> AiInsights => Set<AiInsight>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<ExchangeRate> ExchangeRates => Set<ExchangeRate>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

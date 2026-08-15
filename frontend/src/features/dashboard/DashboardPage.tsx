@@ -1,15 +1,22 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useAccounts, useDeleteAccount } from "../accounts/useAccounts";
 import { AccountCard } from "../accounts/AccountCard";
 import { AddAccountModal } from "../accounts/AddAccountModal";
+import { useSettings } from "../settings/useSettings";
 import { useAuth } from "../../shared/auth/AuthContext";
 import styles from "./DashboardPage.module.css";
 
+const CURRENCY_SYMBOLS: Record<string, string> = { UAH: "₴", USD: "$", EUR: "€" };
+
 export function DashboardPage() {
   const { data: accounts, isLoading } = useAccounts();
+  const { data: settings } = useSettings();
   const deleteAccount = useDeleteAccount();
   const { logout } = useAuth();
   const [isModalOpen, setModalOpen] = useState(false);
+
+  const currencySymbol = settings ? CURRENCY_SYMBOLS[settings.displayCurrency] ?? settings.displayCurrency : "";
 
   // Real net worth needs valuation snapshots (Phase 2) — for now every account
   // is freshly created with no holdings, so this is honestly zero rather than
@@ -21,11 +28,18 @@ export function DashboardPage() {
       <header className={styles.header}>
         <div>
           <p className={styles.eyebrow}>Загальний капітал</p>
-          <h1 className={styles.total}>{totalLabel} ₴</h1>
+          <h1 className={styles.total}>
+            {totalLabel} {currencySymbol}
+          </h1>
         </div>
-        <button className={styles.logout} onClick={logout}>
-          Вийти
-        </button>
+        <div className={styles.headerActions}>
+          <Link to="/settings" className={styles.settingsLink}>
+            Налаштування
+          </Link>
+          <button className={styles.logout} onClick={logout}>
+            Вийти
+          </button>
+        </div>
       </header>
 
       <section className={styles.section}>

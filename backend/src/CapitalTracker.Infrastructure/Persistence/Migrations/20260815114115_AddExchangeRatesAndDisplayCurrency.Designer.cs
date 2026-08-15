@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using CapitalTracker.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CapitalTracker.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(CapitalTrackerDbContext))]
-    partial class CapitalTrackerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260815114115_AddExchangeRatesAndDisplayCurrency")]
+    partial class AddExchangeRatesAndDisplayCurrency
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

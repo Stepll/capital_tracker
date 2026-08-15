@@ -26,6 +26,18 @@
   font-variant-numeric: tabular-nums;
 }
 
+.headerActions {
+  display: flex;
+  gap: 8px;
+}
+
+.settingsLink {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.settingsLink,
 .logout {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -35,6 +47,7 @@
   font-size: 13px;
 }
 
+.settingsLink:hover,
 .logout:hover {
   color: var(--text);
 }

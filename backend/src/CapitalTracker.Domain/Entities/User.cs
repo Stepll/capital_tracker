@@ -10,5 +10,6 @@ public class User
     public Guid Id { get; set; }
     public required string Email { get; set; }
     public required string PasswordHash { get; set; }
+    public string DisplayCurrency { get; set; } = "UAH";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

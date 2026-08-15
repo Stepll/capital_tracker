@@ -3,6 +3,7 @@ import { AuthProvider } from "./shared/auth/AuthContext";
 import { ProtectedRoute } from "./shared/auth/ProtectedRoute";
 import { LoginPage } from "./features/auth/LoginPage";
 import { DashboardPage } from "./features/dashboard/DashboardPage";
+import { SettingsPage } from "./features/settings/SettingsPage";
 
 function App() {
   return (
@@ -15,6 +16,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <SettingsPage />
               </ProtectedRoute>
             }
           />
