@@ -4,6 +4,7 @@ using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -22,13 +23,23 @@ builder.Services.AddHangfireServer();
 
 var host = builder.Build();
 
-// Apply any pending migrations, then run an initial sync so rates are
-// available immediately rather than waiting for the first scheduled run.
+// Migrations are applied by the Api on startup, not here — running MigrateAsync
+// from both processes at once races on the same ALTER TABLE and crashes
+// whichever loses. Do an initial sync so rates are available immediately
+// rather than waiting for the first scheduled run, but don't let it be fatal:
+// if the Api hasn't finished migrating yet, the daily recurring job below
+// will pick it up later instead of crash-looping the whole worker.
 using (var scope = host.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<CapitalTrackerDbContext>();
-    await db.Database.MigrateAsync();
-    await scope.ServiceProvider.GetRequiredService<ExchangeRateSyncService>().SyncAsync();
+    try
+    {
+        await scope.ServiceProvider.GetRequiredService<ExchangeRateSyncService>().SyncAsync();
+    }
+    catch (Exception ex)
+    {
+        scope.ServiceProvider.GetRequiredService<ILogger<Program>>()
+            .LogWarning(ex, "Initial exchange rate sync failed — will retry on the daily schedule.");
+    }
 }
 
 RecurringJob.AddOrUpdate<ExchangeRateSyncService>(
