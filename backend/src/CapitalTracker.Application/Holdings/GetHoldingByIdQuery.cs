@@ -36,13 +36,18 @@ public class GetHoldingByIdQueryHandler(IApplicationDbContext db)
             holding.Id,
             holding.AccountId,
             account.Name,
+            account.Type,
             holding.Name,
             holding.Symbol,
+            holding.Quantity,
+            holding.Notes,
             latest?.Currency ?? account.Currency,
             latest?.Value ?? 0m,
             holding.SectorId,
             sectorName,
             holding.CreatedAt,
-            snapshots.Select(v => new ValuationPointDto(v.Date, v.Value)).ToList());
+            snapshots.Select(v => new ValuationPointDto(v.Date, v.Value)).ToList(),
+            holding.Attributes,
+            holding.SecretAttributes.Keys.ToList());
     }
 }

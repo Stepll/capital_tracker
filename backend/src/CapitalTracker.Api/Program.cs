@@ -4,6 +4,7 @@ using CapitalTracker.Application.Auth;
 using CapitalTracker.Application.Common.Interfaces;
 using CapitalTracker.Infrastructure.Auth;
 using CapitalTracker.Infrastructure.Persistence;
+using CapitalTracker.Infrastructure.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -32,6 +33,16 @@ builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
 builder.Services.AddScoped<UserSeeder>();
 builder.Services.AddScoped<SectorSeeder>();
+
+builder.Services.Configure<AesEncryptionOptions>(builder.Configuration.GetSection(AesEncryptionOptions.SectionName));
+builder.Services.AddSingleton<IEncryptionService, AesEncryptionService>();
+
+// Fail fast on a missing/malformed key at startup rather than on the first
+// request that happens to touch a holding's secret attributes.
+var encryptionKey = builder.Configuration.GetSection(AesEncryptionOptions.SectionName).Get<AesEncryptionOptions>()
+    ?? throw new InvalidOperationException("Encryption configuration section is missing.");
+if (Convert.FromBase64String(encryptionKey.Key).Length != 32)
+    throw new InvalidOperationException("Encryption:Key must decode to exactly 32 bytes (AES-256).");
 
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
     ?? throw new InvalidOperationException("Jwt configuration section is missing.");

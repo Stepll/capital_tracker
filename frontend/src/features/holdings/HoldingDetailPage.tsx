@@ -3,9 +3,12 @@ import { Link, useParams } from "react-router-dom";
 import { useHoldingDetail, useAddValuation, useAssignSector } from "./useHoldingDetail";
 import { useSectors } from "../sectors/useSectors";
 import { useGenerateInsight } from "../insights/useInsights";
+import { HoldingAttributesSection } from "./HoldingAttributesSection";
 import { ValueOverTimeChart } from "../../shared/ui/ValueOverTimeChart";
 import chartStyles from "../../shared/ui/Charts.module.css";
 import styles from "./HoldingDetailPage.module.css";
+
+const todayIso = () => new Date().toISOString().slice(0, 10);
 
 export function HoldingDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -15,6 +18,7 @@ export function HoldingDetailPage() {
   const assignSector = useAssignSector(id!);
   const generateInsight = useGenerateInsight();
   const [newValue, setNewValue] = useState("");
+  const [valuationDate, setValuationDate] = useState(todayIso());
   const [insightMessage, setInsightMessage] = useState<string | null>(null);
 
   if (isLoading) return <div className={styles.page}>Завантаження…</div>;
@@ -22,8 +26,9 @@ export function HoldingDetailPage() {
 
   const handleAddValuation = async () => {
     if (!newValue) return;
-    await addValuation.mutateAsync(Number(newValue));
+    await addValuation.mutateAsync({ value: Number(newValue), date: valuationDate });
     setNewValue("");
+    setValuationDate(todayIso());
   };
 
   const handleGenerateInsight = async () => {
@@ -33,6 +38,10 @@ export function HoldingDetailPage() {
     setInsightMessage(insight.summary);
   };
 
+  const firstValue = holding.valuationHistory[0]?.value;
+  const change =
+    firstValue && firstValue !== 0 ? ((holding.currentValue - firstValue) / firstValue) * 100 : null;
+
   return (
     <div className={styles.page}>
       <header className={styles.header}>
@@ -40,10 +49,23 @@ export function HoldingDetailPage() {
           ← {holding.accountName}
         </Link>
         <h1 className={styles.name}>{holding.name}</h1>
-        {holding.symbol && <p className={styles.symbol}>{holding.symbol}</p>}
-        <p className={styles.value}>
-          {holding.currentValue.toLocaleString("uk-UA")} {holding.currency}
-        </p>
+        {holding.symbol && (
+          <p className={styles.symbol}>
+            {holding.symbol}
+            {holding.quantity ? ` · ${holding.quantity} од.` : ""}
+          </p>
+        )}
+        <div className={styles.valueRow}>
+          <p className={styles.value}>
+            {holding.currentValue.toLocaleString("uk-UA")} {holding.currency}
+          </p>
+          {change !== null && (
+            <span className={change >= 0 ? styles.changeUp : styles.changeDown}>
+              {change >= 0 ? "+" : ""}
+              {change.toFixed(1)}%
+            </span>
+          )}
+        </div>
       </header>
 
       <section className={chartStyles.card}>
@@ -58,6 +80,14 @@ export function HoldingDetailPage() {
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Оновити вартість</h2>
         <div className={styles.updateRow}>
+          <input
+            type="date"
+            className={styles.dateInput}
+            value={valuationDate}
+            max={todayIso()}
+            onChange={(e) => setValuationDate(e.target.value)}
+            aria-label="Дата оцінки"
+          />
           <input
             type="number"
             min="0"
@@ -74,6 +104,9 @@ export function HoldingDetailPage() {
             {addValuation.isPending ? "Зберігаємо…" : "Зберегти"}
           </button>
         </div>
+        <p className={styles.hint}>
+          Значення на вже наявну дату замінить попереднє — зручно виправити помилку.
+        </p>
       </section>
 
       <section className={styles.section}>
@@ -108,6 +141,8 @@ export function HoldingDetailPage() {
         </div>
         {insightMessage && <p className={styles.insightMessage}>{insightMessage}</p>}
       </section>
+
+      <HoldingAttributesSection key={holding.id} holding={holding} />
     </div>
   );
 }

@@ -15,6 +15,25 @@ public class Holding
     /// <summary>Ticker symbol for market-traded assets; null for e.g. real estate.</summary>
     public string? Symbol { get; set; }
 
+    /// <summary>Units held (shares, coins, etc.) — optional; not every asset is unit-based.</summary>
+    public decimal? Quantity { get; set; }
+
+    public string? Notes { get; set; }
+
+    /// <summary>
+    /// Free-form, type-specific fields (e.g. "Забудовник", "Адреса" for real estate;
+    /// "Сервіс" for a brokerage). Plain text — never put secrets here, use
+    /// <see cref="SecretAttributes"/> instead.
+    /// </summary>
+    public Dictionary<string, string> Attributes { get; set; } = [];
+
+    /// <summary>
+    /// Same idea as <see cref="Attributes"/> but for sensitive values (logins,
+    /// passwords). Values are AES-encrypted at the application layer before
+    /// they ever reach this property — this column never holds plaintext.
+    /// </summary>
+    public Dictionary<string, string> SecretAttributes { get; set; } = [];
+
     public Guid? SectorId { get; set; }
     public Sector? Sector { get; set; }
 

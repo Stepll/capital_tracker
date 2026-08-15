@@ -12,6 +12,7 @@ public record CreateHoldingCommand(
     Guid AccountId,
     string Name,
     string? Symbol,
+    decimal? Quantity,
     decimal InitialValue) : IRequest<HoldingDto>;
 
 public class CreateHoldingCommandHandler(IApplicationDbContext db)
@@ -27,6 +28,7 @@ public class CreateHoldingCommandHandler(IApplicationDbContext db)
             AccountId = request.AccountId,
             Name = request.Name,
             Symbol = request.Symbol,
+            Quantity = request.Quantity,
         };
         db.Holdings.Add(holding);
 

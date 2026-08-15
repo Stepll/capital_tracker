@@ -35,12 +35,32 @@
   font-size: 13px;
 }
 
-.value {
+.valueRow {
   margin-top: 8px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.value {
   font-size: 30px;
   font-weight: 700;
   letter-spacing: -0.5px;
   font-variant-numeric: tabular-nums;
+}
+
+.changeUp {
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #0ca30c;
+}
+
+.changeDown {
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #d03b3b;
 }
 
 .section {
@@ -133,4 +153,98 @@
   line-height: 1.5;
   padding-top: 8px;
   border-top: 1px solid var(--border);
+}
+
+.dateInput {
+  flex: 0 0 auto;
+  width: 150px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.field input,
+.field textarea {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 11px 12px;
+  outline: none;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.field input:focus,
+.field textarea:focus {
+  border-color: var(--accent);
+}
+
+.subTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.customRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.customRow input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  outline: none;
+  min-width: 0;
+}
+
+.customRow input:focus {
+  border-color: var(--accent);
+}
+
+.linkButton {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 0;
+}
+
+.linkButtonDanger {
+  background: none;
+  border: none;
+  color: var(--danger);
+  font-size: 12px;
+  padding: 4px;
+}
+
+.secretRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.secretMask {
+  font-family: var(--mono, monospace);
+  letter-spacing: 2px;
+  color: var(--text-dim);
+}
+
+.secretRevealed {
+  font-family: var(--mono, monospace);
+  color: var(--text);
+  word-break: break-all;
 }

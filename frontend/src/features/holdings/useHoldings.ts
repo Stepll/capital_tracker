@@ -6,6 +6,7 @@ export interface CreateHoldingInput {
   accountId: string;
   name: string;
   symbol?: string;
+  quantity?: number;
   initialValue: number;
 }
 

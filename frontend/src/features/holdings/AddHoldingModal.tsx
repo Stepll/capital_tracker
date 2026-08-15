@@ -11,6 +11,7 @@ interface Props {
 export function AddHoldingModal({ accountId, currency, onClose }: Props) {
   const [name, setName] = useState("");
   const [symbol, setSymbol] = useState("");
+  const [quantity, setQuantity] = useState("");
   const [initialValue, setInitialValue] = useState("");
   const createHolding = useCreateHolding();
 
@@ -20,6 +21,7 @@ export function AddHoldingModal({ accountId, currency, onClose }: Props) {
       accountId,
       name,
       symbol: symbol || undefined,
+      quantity: quantity ? Number(quantity) : undefined,
       initialValue: Number(initialValue),
     });
     onClose();
@@ -47,6 +49,18 @@ export function AddHoldingModal({ accountId, currency, onClose }: Props) {
             value={symbol}
             onChange={(e) => setSymbol(e.target.value)}
             placeholder="напр. AAPL"
+          />
+        </label>
+
+        <label className={styles.field}>
+          <span>Кількість одиниць (опційно)</span>
+          <input
+            type="number"
+            min="0"
+            step="any"
+            placeholder="напр. 10 (акцій), 0.5 (BTC)"
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
           />
         </label>
 
