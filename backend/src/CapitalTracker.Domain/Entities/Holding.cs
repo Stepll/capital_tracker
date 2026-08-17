@@ -37,6 +37,14 @@ public class Holding
     public Guid? SectorId { get; set; }
     public Sector? Sector { get; set; }
 
+    /// <summary>
+    /// Opts this holding out of AI analysis entirely. Generating an analysis sends
+    /// <see cref="Attributes"/> and <see cref="Notes"/> to a third-party model and
+    /// to web search; this is the switch for assets the owner would rather not
+    /// expose that way (never <see cref="SecretAttributes"/>, which never leave).
+    /// </summary>
+    public bool ExcludeFromAiAnalysis { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public List<Transaction> Transactions { get; set; } = [];

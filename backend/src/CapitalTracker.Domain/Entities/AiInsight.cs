@@ -19,7 +19,16 @@ public class AiInsight
     public Holding? Holding { get; set; }
 
     public DateTime GeneratedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>Short verdict shown above the facts. Plain text — never markdown.</summary>
     public required string Summary { get; set; }
+
+    /// <summary>
+    /// The individual findings behind <see cref="Summary"/>, stored as jsonb.
+    /// Empty on rows written before the real pipeline existed (and on sector-scoped
+    /// insights, which are still stubbed) — the UI falls back to the summary alone.
+    /// </summary>
+    public List<AnalysisFact> Facts { get; set; } = [];
 
     /// <summary>Raw list of news source URLs used as input, for traceability.</summary>
     public List<string> SourceUrls { get; set; } = [];

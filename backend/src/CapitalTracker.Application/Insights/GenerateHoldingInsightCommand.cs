@@ -42,8 +42,6 @@ public class GenerateHoldingInsightCommandHandler(IApplicationDbContext db)
         db.AiInsights.Add(insight);
         await db.SaveChangesAsync(cancellationToken);
 
-        return new AiInsightDto(
-            insight.Id, insight.SectorId, null, insight.HoldingId,
-            insight.GeneratedAt, insight.Summary, insight.SourceUrls);
+        return insight.ToDto();
     }
 }

@@ -7,4 +7,5 @@ public record AiInsightDto(
     Guid? HoldingId,
     DateTime GeneratedAt,
     string Summary,
-    List<string> SourceUrls);
+    List<string> SourceUrls,
+    List<AnalysisFactDto> Facts);

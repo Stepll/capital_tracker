@@ -17,7 +17,7 @@ public class GetHoldingInsightsQueryHandler(IApplicationDbContext db)
 
         return insights
             .OrderByDescending(i => i.GeneratedAt)
-            .Select(i => new AiInsightDto(i.Id, i.SectorId, null, i.HoldingId, i.GeneratedAt, i.Summary, i.SourceUrls))
+            .Select(i => i.ToDto())
             .ToList();
     }
 }
