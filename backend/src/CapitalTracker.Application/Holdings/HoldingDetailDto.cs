@@ -22,4 +22,8 @@ public record HoldingDetailDto(
     Dictionary<string, string> Attributes,
     // Only the keys — never ciphertext or plaintext values. The client asks
     // for one value at a time via RevealSecretAttributeQuery, on demand.
-    List<string> SecretAttributeKeys);
+    List<string> SecretAttributeKeys,
+    bool ExcludeFromAiAnalysis,
+    // Null when an analysis can be run right now. Surfaced on read so the button
+    // can be disabled before the click rather than after a wasted round trip.
+    DateTime? NextAnalysisAvailableAt);

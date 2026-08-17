@@ -22,7 +22,8 @@ public record UpdateHoldingDetailsCommand(
     decimal? Quantity,
     string? Notes,
     Dictionary<string, string>? Attributes,
-    Dictionary<string, string>? SecretAttributes) : IRequest<HoldingDetailDto>;
+    Dictionary<string, string>? SecretAttributes,
+    bool? ExcludeFromAiAnalysis) : IRequest<HoldingDetailDto>;
 
 public class UpdateHoldingDetailsCommandHandler(IApplicationDbContext db, IEncryptionService encryption, ISender sender)
     : IRequestHandler<UpdateHoldingDetailsCommand, HoldingDetailDto>
@@ -36,6 +37,11 @@ public class UpdateHoldingDetailsCommandHandler(IApplicationDbContext db, IEncry
 
         if (request.Attributes is not null)
             holding.Attributes = request.Attributes;
+
+        // Nullable so an older client, or a partial save, leaves the opt-out alone
+        // rather than silently switching AI analysis back on.
+        if (request.ExcludeFromAiAnalysis is not null)
+            holding.ExcludeFromAiAnalysis = request.ExcludeFromAiAnalysis.Value;
 
         if (request.SecretAttributes is not null)
         {

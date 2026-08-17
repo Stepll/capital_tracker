@@ -1,12 +1,14 @@
 using CapitalTracker.Application.Common.Interfaces;
+using CapitalTracker.Application.Insights;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace CapitalTracker.Application.Holdings;
 
 public record GetHoldingByIdQuery(Guid Id) : IRequest<HoldingDetailDto?>;
 
-public class GetHoldingByIdQueryHandler(IApplicationDbContext db)
+public class GetHoldingByIdQueryHandler(IApplicationDbContext db, IOptions<InsightsOptions> insightsOptions)
     : IRequestHandler<GetHoldingByIdQuery, HoldingDetailDto?>
 {
     public async Task<HoldingDetailDto?> Handle(GetHoldingByIdQuery request, CancellationToken cancellationToken)
@@ -32,6 +34,15 @@ public class GetHoldingByIdQueryHandler(IApplicationDbContext db)
 
         var latest = snapshots.LastOrDefault();
 
+        var lastAnalysedAt = await db.AiInsights
+            .Where(i => i.HoldingId == holding.Id)
+            .MaxAsync(i => (DateTime?)i.GeneratedAt, cancellationToken);
+
+        var cooldown = TimeSpan.FromHours(insightsOptions.Value.CooldownHours);
+        var nextAnalysisAvailableAt = lastAnalysedAt is null || DateTime.UtcNow - lastAnalysedAt.Value >= cooldown
+            ? null
+            : (DateTime?)lastAnalysedAt.Value.Add(cooldown);
+
         return new HoldingDetailDto(
             holding.Id,
             holding.AccountId,
@@ -48,6 +59,8 @@ public class GetHoldingByIdQueryHandler(IApplicationDbContext db)
             holding.CreatedAt,
             snapshots.Select(v => new ValuationPointDto(v.Date, v.Value)).ToList(),
             holding.Attributes,
-            holding.SecretAttributes.Keys.ToList());
+            holding.SecretAttributes.Keys.ToList(),
+            holding.ExcludeFromAiAnalysis,
+            nextAnalysisAvailableAt);
     }
 }

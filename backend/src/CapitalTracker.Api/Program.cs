@@ -1,8 +1,12 @@
 using System.Text;
 using System.Text.Json.Serialization;
+using Anthropic;
 using CapitalTracker.Application.Auth;
 using CapitalTracker.Application.Common.Interfaces;
+using CapitalTracker.Application.Insights;
+using CapitalTracker.Infrastructure.Ai;
 using CapitalTracker.Infrastructure.Auth;
+using CapitalTracker.Infrastructure.MarketData;
 using CapitalTracker.Infrastructure.Persistence;
 using CapitalTracker.Infrastructure.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -46,6 +50,43 @@ if (Convert.FromBase64String(encryptionKey.Key).Length != 32)
 
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
     ?? throw new InvalidOperationException("Jwt configuration section is missing.");
+
+builder.Services.Configure<InsightsOptions>(builder.Configuration.GetSection(InsightsOptions.SectionName));
+
+// Same fail-fast treatment as the encryption key: a missing LLM key should stop the
+// deploy, not surface as a 500 the first time someone opens a holding and clicks
+// "analyse" — by which point the container is live and the failure looks like a bug.
+const string AnthropicKeyHelp =
+    "Set Anthropic:ApiKey — in Docker via ANTHROPIC_API_KEY in .env, locally via "
+    + "`dotnet user-secrets set \"Anthropic:ApiKey\" \"sk-ant-...\"` in src/CapitalTracker.Api.";
+
+builder.Services.Configure<AnthropicOptions>(builder.Configuration.GetSection(AnthropicOptions.SectionName));
+var anthropicOptions = builder.Configuration.GetSection(AnthropicOptions.SectionName).Get<AnthropicOptions>()
+    ?? throw new InvalidOperationException($"Anthropic configuration section is missing. {AnthropicKeyHelp}");
+if (string.IsNullOrWhiteSpace(anthropicOptions.ApiKey))
+    throw new InvalidOperationException($"Anthropic:ApiKey is empty. {AnthropicKeyHelp}");
+
+builder.Services.AddSingleton(new AnthropicClient
+{
+    ApiKey = anthropicOptions.ApiKey,
+    // Well under the SDK's 10-minute default. An analysis runs 1–3 minutes; past five
+    // something is wedged, and holding the socket open only delays the error.
+    Timeout = TimeSpan.FromMinutes(5),
+});
+
+// Finnhub is the deliberate opposite: no key simply means analyses run on web search
+// alone, which is already the only path for holdings without a ticker. Nothing to
+// validate at startup — see FinnhubOptions.
+builder.Services.Configure<FinnhubOptions>(builder.Configuration.GetSection(FinnhubOptions.SectionName));
+builder.Services.AddHttpClient<FinnhubClient>(client =>
+{
+    client.BaseAddress = new Uri("https://finnhub.io/");
+    // Short on purpose: this runs inside a request the user is watching, and market
+    // data is optional garnish. Better to skip it than to stall the whole analysis.
+    client.Timeout = TimeSpan.FromSeconds(8);
+});
+
+builder.Services.AddScoped<IHoldingAnalysisGenerator, AnthropicHoldingAnalysisGenerator>();
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
