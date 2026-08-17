@@ -29,6 +29,10 @@ services:
       InitialUser__Email: "${INITIAL_USER_EMAIL:?Set INITIAL_USER_EMAIL in your .env file}"
       InitialUser__Password: "${INITIAL_USER_PASSWORD:?Set INITIAL_USER_PASSWORD in your .env file}"
       Encryption__Key: "${ENCRYPTION_KEY:?Set ENCRYPTION_KEY in your .env file (openssl rand -base64 32)}"
+      Anthropic__ApiKey: "${ANTHROPIC_API_KEY:?Set ANTHROPIC_API_KEY in your .env file}"
+      # Optional, unlike the others: no key just means analyses skip market data.
+      Finnhub__ApiKey: "${FINNHUB_API_KEY:-}"
+      Insights__CooldownHours: "${INSIGHTS_COOLDOWN_HOURS:-12}"
     ports:
       - "${API_PORT:-5000}:8080"
 
