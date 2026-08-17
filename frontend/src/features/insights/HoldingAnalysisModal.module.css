@@ -1,0 +1,240 @@
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.date {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.summary {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.sectionLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.facts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/*
+ * Cards sit on --bg inside the --surface modal; the polarity colours below were
+ * validated for contrast against that darker surface, not against --surface.
+ */
+.fact {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/*
+ * Polarity is the only axis carrying hue. Red/green is the classic deuteranopia
+ * collision (measured ΔE 6.4), so the colour never travels alone — .glyph is the
+ * required secondary encoding, and every card also carries a text label via
+ * title/aria. Do not "simplify" by dropping the glyph.
+ */
+.positive {
+  border-left-color: var(--success);
+}
+
+.negative {
+  border-left-color: var(--danger);
+}
+
+.neutral {
+  border-left-color: var(--text-faint);
+}
+
+.positive .glyph {
+  color: var(--success);
+}
+
+.negative .glyph {
+  color: var(--danger);
+}
+
+.neutral .glyph {
+  color: var(--text-faint);
+}
+
+.factHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.glyph {
+  font-size: 11px;
+  line-height: 1;
+}
+
+/*
+ * Category is a text chip in neutral ink, deliberately not a seventh hue: a
+ * seven-slot categorical palette fails colour-blind separation on this surface
+ * (worst pair ΔE 1.6 deutan) and even normal-vision separation (ΔE 9.8, below the
+ * 15 floor). The word itself identifies the category perfectly well.
+ */
+.category {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: var(--surface-hover);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+
+.new {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+
+/* Confidence stays achromatic on purpose — a third colour scale would fight the
+   polarity border for attention. */
+.confidence {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.bar {
+  width: 3px;
+  height: 10px;
+  border-radius: 1px;
+  background: var(--border);
+}
+
+.barFilled {
+  background: var(--text-dim);
+}
+
+.claim {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.meta {
+  font-size: 12px;
+  color: var(--text-faint);
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.meta a {
+  color: var(--text-faint);
+  text-decoration: underline;
+}
+
+.meta a:hover {
+  color: var(--accent);
+}
+
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.phase {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-faint);
+}
+
+.phaseActive {
+  color: var(--text);
+}
+
+.phaseDone {
+  color: var(--text-dim);
+}
+
+.phaseMarker {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+.phaseActive .phaseMarker {
+  background: var(--accent);
+}
+
+.phaseDone .phaseMarker {
+  background: var(--text-faint);
+}
+
+.detail {
+  font-size: 12px;
+  color: var(--text-faint);
+  padding-left: 16px;
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+.error {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--danger);
+}
+
+.disclaimer {
+  font-size: 11px;
+  color: var(--text-faint);
+  line-height: 1.5;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.sources {
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.close {
+  align-self: flex-end;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: var(--radius-sm);
+  padding: 10px 18px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.close:hover {
+  background: var(--surface-hover);
+}
+
+.empty {
+  font-size: 13px;
+  color: var(--text-faint);
+}

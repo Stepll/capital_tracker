@@ -21,6 +21,16 @@
   gap: 16px;
 }
 
+/*
+ * Wide variant for content-heavy modals (the analysis report). The 380px default is
+ * sized for short forms; combine as `${styles.modal} ${styles.modalWide}`.
+ */
+.modalWide {
+  max-width: 680px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
 .title {
   font-size: 18px;
   font-weight: 600;

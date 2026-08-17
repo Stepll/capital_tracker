@@ -103,7 +103,7 @@ export function HoldingDetailPage() {
         </div>
 
         <div className={styles.rightColumn}>
-          <HoldingInsightsPanel holdingId={holding.id} />
+          <HoldingInsightsPanel holding={holding} />
         </div>
       </div>
     </div>

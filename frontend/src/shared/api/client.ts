@@ -14,14 +14,23 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+/**
+ * Drop the session and bounce to login. Exported because the SSE stream is a manual
+ * fetch() and so never passes through the interceptor below — without sharing this,
+ * an expired token would log you out on every screen except the analysis modal.
+ */
+export function handleUnauthorized() {
+  localStorage.removeItem(TOKEN_STORAGE_KEY);
+  if (location.pathname !== "/login") {
+    location.href = "/login";
+  }
+}
+
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem(TOKEN_STORAGE_KEY);
-      if (location.pathname !== "/login") {
-        location.href = "/login";
-      }
+      handleUnauthorized();
     }
     return Promise.reject(error);
   },

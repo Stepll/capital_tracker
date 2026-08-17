@@ -173,12 +173,25 @@
   gap: 14px;
 }
 
+/* A button so a stored analysis can be reopened in the modal; the resets below undo
+   the default button chrome so it still reads as the plain block it looks like. */
 .latestInsight {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding-top: 8px;
+  padding: 8px 0 0;
+  border: none;
   border-top: 1px solid var(--border);
+  background: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.latestInsight:hover .insightSummary,
+.insightHistoryItem:hover .insightSummary {
+  color: var(--text);
 }
 
 .latestInsightLabel {
@@ -212,8 +225,14 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding-bottom: 10px;
+  padding: 0 0 10px;
+  border: none;
   border-bottom: 1px solid var(--border);
+  background: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
 }
 
 .insightHistoryItem:last-child {
@@ -257,6 +276,34 @@
   margin-top: 8px;
   padding-top: 12px;
   border-top: 1px solid var(--border);
+}
+
+.checkboxField {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.checkboxField input {
+  margin-top: 2px;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+}
+
+.checkboxField span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.checkboxField em {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--text-faint);
+  line-height: 1.45;
 }
 
 .customRow {

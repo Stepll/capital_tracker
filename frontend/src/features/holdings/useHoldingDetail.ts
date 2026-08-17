@@ -24,6 +24,9 @@ export interface HoldingDetail {
   valuationHistory: ValuationPoint[];
   attributes: Record<string, string>;
   secretAttributeKeys: string[];
+  excludeFromAiAnalysis: boolean;
+  /** Null when an analysis can be run right now; otherwise when the cooldown lifts. */
+  nextAnalysisAvailableAt: string | null;
 }
 
 export function useHoldingDetail(id: string | undefined) {
@@ -57,6 +60,7 @@ export interface UpdateHoldingDetailsInput {
   notes: string | null;
   attributes?: Record<string, string>;
   secretAttributes?: Record<string, string>;
+  excludeFromAiAnalysis?: boolean;
 }
 
 export function useUpdateHoldingDetails(holdingId: string) {

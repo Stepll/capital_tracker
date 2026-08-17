@@ -34,6 +34,7 @@ export function HoldingAttributesSection({ holding }: Props) {
   const [secretDrafts, setSecretDrafts] = useState<Record<string, string>>({});
   const [customSecretKey, setCustomSecretKey] = useState("");
   const [customSecretValue, setCustomSecretValue] = useState("");
+  const [excludeFromAi, setExcludeFromAi] = useState(holding.excludeFromAiAnalysis);
 
   const updateDetails = useUpdateHoldingDetails(holding.id);
   const deleteSecret = useDeleteSecretAttribute(holding.id);
@@ -57,6 +58,7 @@ export function HoldingAttributesSection({ holding }: Props) {
       notes: notes.trim() || null,
       attributes,
       secretAttributes: Object.keys(secretAttributes).length > 0 ? secretAttributes : undefined,
+      excludeFromAiAnalysis: excludeFromAi,
     });
 
     setSecretDrafts({});
@@ -174,6 +176,14 @@ export function HoldingAttributesSection({ holding }: Props) {
           </div>
         </>
       )}
+
+      <label className={styles.checkboxField}>
+        <input type="checkbox" checked={excludeFromAi} onChange={(e) => setExcludeFromAi(e.target.checked)} />
+        <span>
+          Не аналізувати через AI
+          <em>Поля вище й нотатки не надсилатимуться до сторонньої моделі та у веб-пошук.</em>
+        </span>
+      </label>
 
       <button className={styles.primaryButton} onClick={handleSave} disabled={updateDetails.isPending}>
         {updateDetails.isPending ? "Зберігаємо…" : "Зберегти деталі"}

@@ -1,4 +1,10 @@
-import { useHoldingInsights, useGenerateHoldingInsight } from "../insights/useInsights";
+import { useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { HoldingAnalysisModal } from "../insights/HoldingAnalysisModal";
+import { streamHoldingInsight } from "../insights/streamHoldingInsight";
+import type { InsightErrorCode, InsightPhase } from "../insights/insightTypes";
+import { useHoldingInsights, type AiInsight } from "../insights/useInsights";
+import type { HoldingDetail } from "./useHoldingDetail";
 import styles from "./HoldingDetailPage.module.css";
 
 const dateTimeFormatter = new Intl.DateTimeFormat("uk-UA", {
@@ -9,52 +15,142 @@ const dateTimeFormatter = new Intl.DateTimeFormat("uk-UA", {
 });
 
 interface Props {
-  holdingId: string;
+  holding: HoldingDetail;
 }
 
-export function HoldingInsightsPanel({ holdingId }: Props) {
-  const { data: insights, isLoading } = useHoldingInsights(holdingId);
-  const generate = useGenerateHoldingInsight(holdingId);
+export function HoldingInsightsPanel({ holding }: Props) {
+  const queryClient = useQueryClient();
+  const { data: insights, isLoading } = useHoldingInsights(holding.id);
+
+  const [isOpen, setOpen] = useState(false);
+  const [running, setRunning] = useState(false);
+  const [phase, setPhase] = useState<InsightPhase | null>(null);
+  const [detail, setDetail] = useState<string | null>(null);
+  const [error, setError] = useState<InsightErrorCode | null>(null);
+  const [retryAt, setRetryAt] = useState<string | null>(null);
+  const [shown, setShown] = useState<AiInsight | null>(null);
+
+  const abortRef = useRef<AbortController | null>(null);
 
   const [latest, ...history] = insights ?? [];
+
+  const cooldownUntil = holding.nextAnalysisAvailableAt;
+  const blocked = holding.excludeFromAiAnalysis
+    ? "Для цього активу AI-аналіз вимкнено."
+    : cooldownUntil
+      ? `Наступний аналіз буде доступний ${dateTimeFormatter.format(new Date(cooldownUntil))}.`
+      : null;
+
+  // Started from the click rather than a useEffect: under StrictMode an effect fires
+  // twice in development, and each run is a paid analysis.
+  function start() {
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    setOpen(true);
+    setRunning(true);
+    setShown(null);
+    setPhase(null);
+    setDetail(null);
+    setError(null);
+    setRetryAt(null);
+
+    void streamHoldingInsight(
+      holding.id,
+      (event) => {
+        if (event.type === "Phase") {
+          setPhase(event.phase);
+          setDetail(event.detail);
+          return;
+        }
+
+        setRunning(false);
+
+        if (event.type === "Failed") {
+          setError(event.errorCode);
+          setRetryAt(event.retryAt);
+          return;
+        }
+
+        setShown(event.insight);
+        queryClient.invalidateQueries({ queryKey: ["holdings", holding.id, "insights"] });
+        // The holding itself carries the cooldown, so it has to be refetched too or the
+        // button stays enabled until the next navigation.
+        queryClient.invalidateQueries({ queryKey: ["holdings", holding.id] });
+      },
+      controller.signal,
+    );
+  }
+
+  function close() {
+    // Aborting mid-run cancels the model call server-side; nothing is saved and the
+    // cooldown is untouched, which is why the button says "Скасувати аналіз".
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setOpen(false);
+    setRunning(false);
+  }
 
   return (
     <section className={styles.insightsPanel}>
       <h2 className={styles.sectionTitle}>AI-аналітика активу</h2>
 
-      <button
-        className={styles.secondaryButton}
-        onClick={() => generate.mutate()}
-        disabled={generate.isPending}
-      >
-        {generate.isPending ? "Аналізуємо…" : "Запустити аналіз"}
+      <button className={styles.secondaryButton} onClick={start} disabled={running || blocked !== null}>
+        {running ? "Аналізуємо…" : "Запустити аналіз"}
       </button>
+
+      {blocked && <p className={styles.hint}>{blocked}</p>}
 
       {isLoading && <p className={styles.hint}>Завантаження…</p>}
 
-      {!isLoading && !latest && (
-        <p className={styles.hint}>Ще не проводили аналіз цього активу.</p>
-      )}
+      {!isLoading && !latest && <p className={styles.hint}>Ще не проводили аналіз цього активу.</p>}
 
       {latest && (
-        <div className={styles.latestInsight}>
+        <button type="button" className={styles.latestInsight} onClick={() => openStored(latest)}>
           <p className={styles.latestInsightLabel}>Останній аналіз</p>
           <p className={styles.insightDate}>{dateTimeFormatter.format(new Date(latest.generatedAt))}</p>
           <p className={styles.insightSummary}>{latest.summary}</p>
-        </div>
+        </button>
       )}
 
       {history.length > 0 && (
         <div className={styles.insightHistory}>
           <p className={styles.subTitle}>Попередні аналізи</p>
           {history.map((insight) => (
-            <div key={insight.id} className={styles.insightHistoryItem}>
+            <button
+              key={insight.id}
+              type="button"
+              className={styles.insightHistoryItem}
+              onClick={() => openStored(insight)}
+            >
               <p className={styles.insightDate}>{dateTimeFormatter.format(new Date(insight.generatedAt))}</p>
               <p className={styles.insightSummary}>{insight.summary}</p>
-            </div>
+            </button>
           ))}
         </div>
       )}
+
+      {isOpen && (
+        <HoldingAnalysisModal
+          analysis={shown}
+          phase={phase}
+          detail={detail}
+          error={error}
+          retryAt={retryAt}
+          onClose={close}
+        />
+      )}
     </section>
   );
+
+  /** Reopens a stored analysis in the same modal, with no stream attached. */
+  function openStored(insight: AiInsight) {
+    setShown(insight);
+    setPhase(null);
+    setDetail(null);
+    setError(null);
+    setRetryAt(null);
+    setRunning(false);
+    setOpen(true);
+  }
 }
