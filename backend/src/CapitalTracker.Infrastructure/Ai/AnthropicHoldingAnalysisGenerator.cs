@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Anthropic;
 using Anthropic.Models.Messages;
 using CapitalTracker.Application.Common.Interfaces;
@@ -282,18 +283,52 @@ public class AnthropicHoldingAnalysisGenerator(
             ? value.GetString()
             : null;
 
+    /// <summary>
+    /// Pulls the human-readable search terms out of a server-tool call.
+    ///
+    /// Not as simple as reading a "query" field: web_search_20260209 does its dynamic
+    /// filtering through code execution, so the tool input is a snippet of Python that
+    /// calls web_search itself — the queries live inside string literals in that code.
+    /// Anything that doesn't look like natural language (glue, separators, identifiers)
+    /// is dropped, and a miss just means the phase shows without a detail line.
+    /// </summary>
     private static string? ReadSearchQuery(string json)
     {
         try
         {
             using var document = JsonDocument.Parse(json);
-            return Truncate(GetString(document.RootElement, "query"));
+            var code = GetString(document.RootElement, "code");
+            if (code is null)
+            {
+                // Older/basic web search does hand over a plain query.
+                return Truncate(GetString(document.RootElement, "query"));
+            }
+
+            var queries = Regex
+                .Matches(code, "\"((?:[^\"\\\\]|\\\\.)*)\"")
+                .Select(m => Regex.Unescape(m.Groups[1].Value))
+                .Where(LooksLikeSearchTerms)
+                .Distinct()
+                .ToList();
+
+            return queries.Count == 0 ? null : Truncate(string.Join(" · ", queries));
         }
         catch (JsonException)
         {
             return null;
         }
+        catch (RegexParseException)
+        {
+            return null;
+        }
     }
+
+    private static bool LooksLikeSearchTerms(string candidate) =>
+        candidate.Length >= 8
+        && candidate.Contains(' ')
+        && candidate.Any(char.IsLetter)
+        && !candidate.Contains('_')
+        && !candidate.Contains("://", StringComparison.Ordinal);
 
     private static string? Truncate(string? text, int max = DetailMaxLength)
     {
