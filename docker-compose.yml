@@ -33,6 +33,9 @@ services:
       # Optional, unlike the others: no key just means analyses skip market data.
       Finnhub__ApiKey: "${FINNHUB_API_KEY:-}"
       Insights__CooldownHours: "${INSIGHTS_COOLDOWN_HOURS:-12}"
+      # Set APP_LOG_LEVEL=Debug in .env to see the analysis pipeline's stream
+      # diagnostics (per-block tool input). Leave unset for normal operation.
+      Logging__LogLevel__CapitalTracker: "${APP_LOG_LEVEL:-Information}"
     ports:
       - "${API_PORT:-5000}:8080"
 

@@ -135,15 +135,19 @@ public class AnthropicHoldingAnalysisGenerator(
 
             if (blocks.TryGetValue(index, out var finished))
             {
+                var json = finished.Json.ToString();
+                logger.LogDebug("Stream block {Index} ({Tool}) closed with {Length} chars of input: {Json}",
+                    index, finished.ToolName, json.Length, Truncate(json, 300) ?? "<empty>");
+
                 if (finished.ToolName == SaveAnalysisTool.Name)
                 {
-                    result = ParseResult(finished.Json.ToString());
+                    result = ParseResult(json);
                 }
                 else if (finished.ToolName == "server")
                 {
                     // The server tool's accumulated input holds the query the model chose —
                     // the most informative thing we can show during a long search phase.
-                    var query = ReadSearchQuery(finished.Json.ToString());
+                    var query = ReadSearchQuery(json);
                     if (query is not null)
                     {
                         events.Add(AnalysisGenerationEvent.AtPhase(InsightPhase.Searching, query));
@@ -178,6 +182,18 @@ public class AnthropicHoldingAnalysisGenerator(
                 return null;
             }
 
+            // Occasionally the model serializes the tool call as its text-mode pseudo-XML
+            // *inside* the summary argument — "…</summary><parameter name="facts">[…]" — so
+            // facts never becomes a real key and the whole call collapses into one string.
+            // Observed intermittently on the same code path that works fine most runs.
+            // Failing here means nothing is persisted and the cooldown stays open, which is
+            // far better than showing a wall of markup as the analysis.
+            if (LooksLikeLeakedToolCall(summary!))
+            {
+                logger.LogWarning("save_analysis returned a text-mode tool call inside its summary argument; discarding.");
+                return null;
+            }
+
             var facts = new List<AnalysisFactDto>();
             if (root.TryGetProperty("facts", out var factsElement) && factsElement.ValueKind == JsonValueKind.Array)
             {
@@ -199,6 +215,11 @@ public class AnthropicHoldingAnalysisGenerator(
             return null;
         }
     }
+
+    private static bool LooksLikeLeakedToolCall(string summary) =>
+        summary.Contains("<parameter name=", StringComparison.OrdinalIgnoreCase)
+        || summary.Contains("</summary>", StringComparison.OrdinalIgnoreCase)
+        || summary.Contains("<invoke", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Drops a fact rather than throwing when a field is missing or unrecognised — one
@@ -274,7 +295,7 @@ public class AnthropicHoldingAnalysisGenerator(
         }
     }
 
-    private static string? Truncate(string? text)
+    private static string? Truncate(string? text, int max = DetailMaxLength)
     {
         if (string.IsNullOrWhiteSpace(text))
         {
@@ -282,7 +303,7 @@ public class AnthropicHoldingAnalysisGenerator(
         }
 
         var trimmed = text.Trim();
-        return trimmed.Length <= DetailMaxLength ? trimmed : trimmed[..DetailMaxLength] + "…";
+        return trimmed.Length <= max ? trimmed : trimmed[..max] + "…";
     }
 
     private MessageCreateParams BuildParameters(HoldingAnalysisRequest request, MarketDataBlock? marketData) => new()

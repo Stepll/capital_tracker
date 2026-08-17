@@ -65,6 +65,10 @@ public static class InsightPrompts
         Call save_analysis exactly once. Do not write the analysis as prose in your
         reply; the tool call is the deliverable.
 
+        Pass summary and facts as separate arguments of that call. Never write markup
+        such as </summary> or <parameter name="..."> inside an argument value — an
+        argument is a plain value, not a document with tags in it.
+
         Write summary and every claim in Ukrainian, as plain text. No markdown, no
         asterisks, no headings — the text is rendered literally.
 
