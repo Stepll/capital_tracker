@@ -20,21 +20,10 @@ public class GetDashboardSummaryQueryHandler(IApplicationDbContext db)
         var user = await db.Users.SingleAsync(u => u.Id == request.UserId, cancellationToken);
         var displayCurrency = user.DisplayCurrency;
 
-        var rates = await db.ExchangeRates.ToListAsync(cancellationToken);
-        var latestRateToUah = rates
-            .GroupBy(r => r.Currency)
-            .ToDictionary(g => g.Key, g => g.OrderByDescending(r => r.Date).First().RateToUah);
-        latestRateToUah[SupportedCurrencies.Base] = 1m;
+        var converter = await CurrencyConverter.LoadAsync(db, cancellationToken);
 
-        decimal ToDisplay(decimal value, string currency)
-        {
-            if (currency == displayCurrency)
-                return value;
-
-            var toUah = latestRateToUah.GetValueOrDefault(currency, 1m);
-            var displayToUah = latestRateToUah.GetValueOrDefault(displayCurrency, 1m);
-            return value * toUah / displayToUah;
-        }
+        decimal ToDisplay(decimal value, string currency) =>
+            converter.Convert(value, currency, displayCurrency);
 
         var accounts = await db.Accounts.ToListAsync(cancellationToken);
         var holdings = await db.Holdings.ToListAsync(cancellationToken);

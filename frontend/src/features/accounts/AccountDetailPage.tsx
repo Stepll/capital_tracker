@@ -16,8 +16,6 @@ export function AccountDetailPage() {
   if (isLoading) return <div className={styles.page}>Завантаження…</div>;
   if (!account) return <div className={styles.page}>Рахунок не знайдено.</div>;
 
-  const total = account.holdings.reduce((sum, h) => sum + h.currentValue, 0);
-
   return (
     <div className={styles.page}>
       <header className={styles.header}>
@@ -26,8 +24,11 @@ export function AccountDetailPage() {
         </Link>
         <h1 className={styles.name}>{account.name}</h1>
         <p className={styles.subtitle}>{ACCOUNT_TYPE_LABELS[account.type]}</p>
+        {/* Server-computed: holdings can be denominated differently from the account
+            (a USD stock in a UAH brokerage account), so summing them here would add
+            USD to UAH and label the result with the account's currency. */}
         <p className={styles.total}>
-          {total.toLocaleString("uk-UA")} {account.currency}
+          {account.totalValue.toLocaleString("uk-UA")} {account.currency}
         </p>
       </header>
 

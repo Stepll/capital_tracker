@@ -1,3 +1,4 @@
+using CapitalTracker.Application.Common;
 using CapitalTracker.Application.Common.Interfaces;
 using CapitalTracker.Application.Holdings;
 using MediatR;
@@ -23,7 +24,10 @@ public class GetAccountByIdQueryHandler(IApplicationDbContext db)
             .OrderBy(h => h.CreatedAt)
             .ToList();
 
+        var converter = await CurrencyConverter.LoadAsync(db, cancellationToken);
+        var total = holdings.Sum(h => converter.Convert(h.CurrentValue, h.Currency, account.Currency));
+
         return new AccountDetailDto(
-            account.Id, account.Name, account.Type, account.Currency, account.CreatedAt, holdings);
+            account.Id, account.Name, account.Type, account.Currency, account.CreatedAt, total, holdings);
     }
 }

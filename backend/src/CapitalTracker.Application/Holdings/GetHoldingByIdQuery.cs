@@ -1,3 +1,4 @@
+using CapitalTracker.Application.Common;
 using CapitalTracker.Application.Common.Interfaces;
 using CapitalTracker.Application.Insights;
 using MediatR;
@@ -33,6 +34,12 @@ public class GetHoldingByIdQueryHandler(IApplicationDbContext db, IOptions<Insig
             .ToList();
 
         var latest = snapshots.LastOrDefault();
+        var currency = latest?.Currency ?? account.Currency;
+
+        // History can be mixed-currency — a UAH figure entered by hand before the holding
+        // was recognised as USD-denominated, then USD rows from the price job. The chart
+        // is labelled with one currency, so the series is converted into the current one.
+        var converter = await CurrencyConverter.LoadAsync(db, cancellationToken);
 
         var lastAnalysedAt = await db.AiInsights
             .Where(i => i.HoldingId == holding.Id)
@@ -52,12 +59,14 @@ public class GetHoldingByIdQueryHandler(IApplicationDbContext db, IOptions<Insig
             holding.Symbol,
             holding.Quantity,
             holding.Notes,
-            latest?.Currency ?? account.Currency,
+            currency,
             latest?.Value ?? 0m,
             holding.SectorId,
             sectorName,
             holding.CreatedAt,
-            snapshots.Select(v => new ValuationPointDto(v.Date, v.Value)).ToList(),
+            snapshots
+                .Select(v => new ValuationPointDto(v.Date, converter.Convert(v.Value, v.Currency, currency)))
+                .ToList(),
             holding.Attributes,
             holding.SecretAttributes.Keys.ToList(),
             holding.ExcludeFromAiAnalysis,
