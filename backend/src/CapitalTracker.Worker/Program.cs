@@ -16,6 +16,7 @@ builder.Services.AddDbContext<CapitalTrackerDbContext>(options =>
 
 builder.Services.AddHttpClient<NbuExchangeRateClient>();
 builder.Services.AddScoped<ExchangeRateSyncService>();
+builder.Services.AddScoped<ExchangeRateBackfillService>();
 
 // Unlike the Api, no eager validation here: a missing Finnhub key means holdings keep
 // their last manual value, which is the pre-existing behaviour, not a broken deploy.
@@ -46,6 +47,7 @@ var host = builder.Build();
 using (var scope = host.Services.CreateScope())
 {
     await RunAtStartupAsync(scope.ServiceProvider.GetRequiredService<ExchangeRateSyncService>().SyncAsync, "exchange rate");
+    await RunAtStartupAsync(scope.ServiceProvider.GetRequiredService<ExchangeRateBackfillService>().BackfillAsync, "exchange rate backfill");
     await RunAtStartupAsync(scope.ServiceProvider.GetRequiredService<HoldingPriceSyncService>().SyncAsync, "holding price");
 
     async Task RunAtStartupAsync(Func<CancellationToken, Task> sync, string what)
@@ -71,6 +73,15 @@ recurringJobs.AddOrUpdate<ExchangeRateSyncService>(
     "sync-exchange-rates",
     service => service.SyncAsync(default),
     Cron.Daily);
+
+// An hour after the sync above, so today's rate is already in place when the gap check
+// runs. Recurring rather than startup-only because gaps keep appearing: a Worker outage
+// leaves the days it was down uncovered, and a valuation entered with an old date extends
+// the range backwards. Costs nothing on a complete range — no gap, no request.
+recurringJobs.AddOrUpdate<ExchangeRateBackfillService>(
+    "backfill-exchange-rates",
+    service => service.BackfillAsync(default),
+    Cron.Daily(1));
 
 // 22:00 UTC is after the US close all year (20:00 EDT / 21:00 EST) and still lands on
 // the same UTC date, unlike Cron.Daily's midnight which would date a close to the
