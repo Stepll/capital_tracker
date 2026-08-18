@@ -80,7 +80,7 @@ builder.Services.AddSingleton(new AnthropicClient
 builder.Services.Configure<FinnhubOptions>(builder.Configuration.GetSection(FinnhubOptions.SectionName));
 builder.Services.AddHttpClient<FinnhubClient>(client =>
 {
-    client.BaseAddress = new Uri("https://finnhub.io/");
+    client.BaseAddress = new Uri(FinnhubClient.BaseUrl);
     // Short on purpose: this runs inside a request the user is watching, and market
     // data is optional garnish. Better to skip it than to stall the whole analysis.
     client.Timeout = TimeSpan.FromSeconds(8);

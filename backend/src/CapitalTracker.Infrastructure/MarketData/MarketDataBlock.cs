@@ -10,4 +10,7 @@ public record MarketDataBlock(
     decimal? PercentChange,
     IReadOnlyList<MarketNewsItem> News);
 
+/// <summary>Just the price — what the daily valuation job needs.</summary>
+public record MarketQuote(decimal Price, decimal? PercentChange);
+
 public record MarketNewsItem(DateOnly Date, string Source, string Headline, string Url);

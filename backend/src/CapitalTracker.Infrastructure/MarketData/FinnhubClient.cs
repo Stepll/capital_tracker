@@ -15,6 +15,22 @@ public class FinnhubClient(
     IOptions<FinnhubOptions> options,
     ILogger<FinnhubClient> logger)
 {
+    /// <summary>
+    /// Every registration must set this as the client's BaseAddress — the requests below
+    /// use relative paths, and because failures are swallowed into "no data", forgetting
+    /// it turns the whole client into a permanently silent no-op rather than an error.
+    /// </summary>
+    public const string BaseUrl = "https://finnhub.io/";
+
+    /// <summary>
+    /// Finnhub's /quote endpoint returns no currency field, so this is an assumption
+    /// rather than a reading: on the free tier, and behind the "bare ticker on a
+    /// brokerage account" filter callers apply, quotes are US listings priced in USD.
+    /// /stock/profile2 would report the real currency at the cost of a second request
+    /// per symbol to learn something that is USD in every case we can price today.
+    /// </summary>
+    public const string QuoteCurrency = "USD";
+
     private const int NewsWindowDays = 14;
     private const int MaxNewsItems = 15;
 
@@ -31,40 +47,55 @@ public class FinnhubClient(
     public bool IsConfigured => !string.IsNullOrWhiteSpace(options.Value.ApiKey);
 
     /// <summary>
-    /// Returns null whenever market data is unavailable for any reason — no key,
-    /// unknown symbol, API error, timeout. Callers treat that as "analyse without it",
-    /// never as a failure: a Finnhub outage must not take down the whole analysis.
+    /// Current price only. Returns null whenever it is unavailable for any reason — no
+    /// key, unknown symbol, API error, timeout — so callers decide the consequence
+    /// (skip a holding, or analyse without market data) rather than handling exceptions.
     /// </summary>
-    public async Task<MarketDataBlock?> GetAsync(string symbol, CancellationToken cancellationToken)
+    public async Task<MarketQuote?> GetQuoteAsync(string symbol, CancellationToken cancellationToken)
     {
         if (!IsConfigured)
         {
             return null;
         }
 
-        var key = options.Value.ApiKey;
-
         try
         {
             var quote = await httpClient.GetFromJsonAsync<Quote>(
-                $"api/v1/quote?symbol={Uri.EscapeDataString(symbol)}&token={key}", cancellationToken);
+                $"api/v1/quote?symbol={Uri.EscapeDataString(symbol)}&token={options.Value.ApiKey}",
+                cancellationToken);
 
             // Finnhub answers an unrecognised ticker with an all-zero quote rather than
-            // a 404. Reporting that as a real price would tell the model the asset is
-            // worthless — a false premise it would then reason from, confidently.
+            // a 404. Treating that as a real price would report the asset as worthless.
             if (quote is null || quote.Current == 0m)
             {
-                logger.LogInformation("Finnhub returned no usable quote for {Symbol}; analysing without market data.", symbol);
+                logger.LogInformation("Finnhub returned no usable quote for {Symbol}.", symbol);
                 return null;
             }
 
-            return new MarketDataBlock(quote.Current, quote.PercentChange, await GetNewsAsync(symbol, key, cancellationToken));
+            return new MarketQuote(quote.Current, quote.PercentChange);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogWarning(ex, "Finnhub lookup failed for {Symbol}; analysing without market data.", symbol);
+            logger.LogWarning(ex, "Finnhub quote lookup failed for {Symbol}.", symbol);
             return null;
         }
+    }
+
+    /// <summary>
+    /// Quote plus recent headlines, for the analysis pipeline. The price job wants
+    /// <see cref="GetQuoteAsync"/> instead — fetching news per symbol in a bulk refresh
+    /// doubles the requests against a 60/min free tier to no purpose.
+    /// </summary>
+    public async Task<MarketDataBlock?> GetAsync(string symbol, CancellationToken cancellationToken)
+    {
+        var quote = await GetQuoteAsync(symbol, cancellationToken);
+        if (quote is null)
+        {
+            return null;
+        }
+
+        var news = await GetNewsAsync(symbol, options.Value.ApiKey, cancellationToken);
+        return new MarketDataBlock(quote.Price, quote.PercentChange, news);
     }
 
     private async Task<IReadOnlyList<MarketNewsItem>> GetNewsAsync(
