@@ -123,6 +123,20 @@
   outline: none;
 }
 
+.currencySelect {
+  flex: 0 0 auto;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 11px 10px;
+  color: var(--text);
+  outline: none;
+}
+
+.currencySelect:focus {
+  border-color: var(--accent);
+}
+
 .updateRow input:focus {
   border-color: var(--accent);
 }

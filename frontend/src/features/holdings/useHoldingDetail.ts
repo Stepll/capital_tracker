@@ -40,6 +40,7 @@ export function useHoldingDetail(id: string | undefined) {
 export interface AddValuationInput {
   value: number;
   date?: string;
+  currency?: string;
 }
 
 export function useAddValuation(holdingId: string) {

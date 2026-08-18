@@ -5,6 +5,7 @@ import { HoldingAttributesSection } from "./HoldingAttributesSection";
 import { HoldingInsightsPanel } from "./HoldingInsightsPanel";
 import { ValueOverTimeChart } from "../../shared/ui/ValueOverTimeChart";
 import chartStyles from "../../shared/ui/Charts.module.css";
+import { CURRENCIES } from "../../shared/currencies";
 import styles from "./HoldingDetailPage.module.css";
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
@@ -15,15 +16,21 @@ export function HoldingDetailPage() {
   const addValuation = useAddValuation(id!);
   const [newValue, setNewValue] = useState("");
   const [valuationDate, setValuationDate] = useState(todayIso());
+  // Null means "whatever the holding is already denominated in" — resolved at render,
+  // since `holding` isn't available this early (the loading guards come after).
+  const [valuationCurrency, setValuationCurrency] = useState<string | null>(null);
 
   if (isLoading) return <div className={styles.page}>Завантаження…</div>;
   if (!holding) return <div className={styles.page}>Актив не знайдено.</div>;
 
+  const currency = valuationCurrency ?? holding.currency;
+
   const handleAddValuation = async () => {
     if (!newValue) return;
-    await addValuation.mutateAsync({ value: Number(newValue), date: valuationDate });
+    await addValuation.mutateAsync({ value: Number(newValue), date: valuationDate, currency });
     setNewValue("");
     setValuationDate(todayIso());
+    setValuationCurrency(null);
   };
 
   const firstValue = holding.valuationHistory[0]?.value;
@@ -82,10 +89,25 @@ export function HoldingDetailPage() {
                 type="number"
                 min="0"
                 step="0.01"
-                placeholder={`Нова вартість, ${holding.currency}`}
+                placeholder={`Нова вартість, ${currency}`}
                 value={newValue}
                 onChange={(e) => setNewValue(e.target.value)}
               />
+              {/* An asset can be denominated differently from its account — a USD stock
+                  in a UAH brokerage account — so the currency is explicit rather than
+                  inherited, and defaults to the one the holding already uses. */}
+              <select
+                className={styles.currencySelect}
+                value={currency}
+                onChange={(e) => setValuationCurrency(e.target.value)}
+                aria-label="Валюта оцінки"
+              >
+                {CURRENCIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
               <button
                 className={styles.primaryButton}
                 onClick={handleAddValuation}

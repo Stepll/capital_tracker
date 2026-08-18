@@ -2,12 +2,12 @@ import { useState, type FormEvent } from "react";
 import { useCreateAccount } from "./useAccounts";
 import { ACCOUNT_TYPE_LABELS, type AccountType } from "./types";
 import styles from "../../shared/ui/Modal.module.css";
+import { CURRENCIES } from "../../shared/currencies";
 
 interface Props {
   onClose: () => void;
 }
 
-const CURRENCIES = ["UAH", "USD", "EUR"];
 
 export function AddAccountModal({ onClose }: Props) {
   const [name, setName] = useState("");

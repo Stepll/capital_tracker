@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CapitalTracker.Api.Controllers;
 
 public record CreateHoldingRequest(string Name, string? Symbol, decimal? Quantity, decimal InitialValue);
-public record AddValuationRequest(decimal Value, DateOnly? Date);
+public record AddValuationRequest(decimal Value, DateOnly? Date, string? Currency);
 public record AssignSectorRequest(Guid? SectorId);
 public record UpdateHoldingDetailsRequest(
     decimal? Quantity,
@@ -70,7 +70,7 @@ public class HoldingsController(ISender sender) : ControllerBase
 
     [HttpPost("holdings/{id:guid}/valuations")]
     public async Task<ActionResult<HoldingDetailDto>> AddValuation(Guid id, AddValuationRequest request) =>
-        Ok(await sender.Send(new AddValuationCommand(id, request.Value, request.Date)));
+        Ok(await sender.Send(new AddValuationCommand(id, request.Value, request.Date, request.Currency)));
 
     [HttpPut("holdings/{id:guid}/sector")]
     public async Task<ActionResult<HoldingDetailDto>> AssignSector(Guid id, AssignSectorRequest request) =>
