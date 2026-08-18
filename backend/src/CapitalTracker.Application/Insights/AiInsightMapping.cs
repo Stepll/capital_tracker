@@ -4,15 +4,16 @@ namespace CapitalTracker.Application.Insights;
 
 public static class AiInsightMapping
 {
-    /// <param name="sectorName">
-    /// Only the sector feed has these loaded; the per-holding feed passes null rather
-    /// than issuing a lookup for a field its UI doesn't show.
+    /// <param name="holding">
+    /// The analysed holding, soft-deleted or not. Only the archive loads these; the
+    /// per-holding feed passes null rather than looking up a name its UI already shows.
     /// </param>
-    public static AiInsightDto ToDto(this AiInsight insight, string? sectorName = null) => new(
+    public static AiInsightDto ToDto(this AiInsight insight, Holding? holding = null) => new(
         insight.Id,
-        insight.SectorId,
-        sectorName,
+        insight.Scope,
         insight.HoldingId,
+        holding?.Name,
+        holding?.DeletedAt is not null,
         insight.GeneratedAt,
         insight.Summary,
         insight.SourceUrls,

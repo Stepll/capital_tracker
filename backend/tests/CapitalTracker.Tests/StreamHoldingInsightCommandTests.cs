@@ -94,20 +94,19 @@ public class StreamHoldingInsightCommandTests
     }
 
     [Fact]
-    public async Task Saved_insight_never_carries_a_sector_id()
+    public async Task Saved_insight_is_scoped_to_the_holding_it_analysed()
     {
-        // Regression: the stub this replaced set both FKs, so per-asset insights leaked
-        // into the sector feed, which filters on SectorId != null.
+        // Regression, in its second form: the sector stub this replaced set both FKs, so
+        // per-asset analyses leaked into the sector feed. The scope is explicit now, and
+        // it is what the archive groups on.
         await using var db = TestDbContext.Create();
 
-        var sector = new Sector { Id = Guid.NewGuid(), Name = "Tech" };
-        db.Sectors.Add(sector);
-        var holding = await SeedHoldingAsync(db, h => h.SectorId = sector.Id);
+        var holding = await SeedHoldingAsync(db);
 
         await RunAsync(db, new FakeAnalysisGenerator(), holding.Id);
 
         var saved = Assert.Single(await db.AiInsights.ToListAsync());
-        Assert.Null(saved.SectorId);
+        Assert.Equal(InsightScope.Holding, saved.Scope);
         Assert.Equal(holding.Id, saved.HoldingId);
     }
 

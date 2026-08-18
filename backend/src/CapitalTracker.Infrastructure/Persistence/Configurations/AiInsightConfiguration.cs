@@ -20,19 +20,14 @@ public class AiInsightConfiguration : IEntityTypeConfiguration<AiInsight>
 
     public void Configure(EntityTypeBuilder<AiInsight> builder)
     {
-        // Both FKs are optional (SectorId/HoldingId are nullable — exactly one is
-        // set per insight), so EF Core's default convention is Restrict rather
-        // than the Cascade a required FK gets. Without this, deleting a holding
-        // (directly, or via its account cascading) fails with a FK violation
-        // the moment it has any insight history.
+        // HoldingId is optional, so EF Core's default convention here is Restrict — which
+        // used to fail with a FK violation the moment a deleted holding had any analysis.
+        // Holdings are soft-deleted now, so nothing triggers this at all; it is SetNull
+        // rather than Cascade purely as a backstop, because a future hard delete should
+        // cost the archive its link, not the analysis itself.
         builder.HasOne(i => i.Holding)
             .WithMany()
             .HasForeignKey(i => i.HoldingId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        builder.HasOne(i => i.Sector)
-            .WithMany()
-            .HasForeignKey(i => i.SectorId)
             .OnDelete(DeleteBehavior.SetNull);
 
         builder.Property(i => i.Facts)

@@ -1,5 +1,6 @@
 using CapitalTracker.Application.Common.Interfaces;
 using CapitalTracker.Domain.Entities;
+using CapitalTracker.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -166,10 +167,9 @@ public class StreamHoldingInsightCommandHandler(
         {
             Id = Guid.NewGuid(),
             HoldingId = holding.Id,
-            // Deliberately NOT holding.SectorId. A holding-scoped insight that also carries
-            // a sector id shows up in the sector feed (GetInsightsQuery filters on
-            // SectorId != null) — that was a real bug in the stub this replaced.
-            SectorId = null,
+            // Explicit, not inferred from the FK being set: the archive groups by scope,
+            // and the portfolio and market analyses coming next carry no holding at all.
+            Scope = InsightScope.Holding,
             Summary = result.Summary,
             Facts = result.Facts
                 .Select(f => new AnalysisFact
