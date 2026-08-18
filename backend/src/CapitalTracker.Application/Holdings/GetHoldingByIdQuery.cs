@@ -14,11 +14,18 @@ public class GetHoldingByIdQueryHandler(IApplicationDbContext db, IOptions<Insig
 {
     public async Task<HoldingDetailDto?> Handle(GetHoldingByIdQuery request, CancellationToken cancellationToken)
     {
-        var holding = await db.Holdings.SingleOrDefaultAsync(h => h.Id == request.Id, cancellationToken);
+        // Past the soft-delete filter on purpose: a deleted holding still has to open, or
+        // every link to it — from the analysis archive above all — turns into a 404. The
+        // DTO says it is deleted and the page renders read-only.
+        var holding = await db.Holdings
+            .IgnoreQueryFilters()
+            .SingleOrDefaultAsync(h => h.Id == request.Id, cancellationToken);
         if (holding is null)
             return null;
 
-        var account = await db.Accounts.SingleAsync(a => a.Id == holding.AccountId, cancellationToken);
+        var account = await db.Accounts
+            .IgnoreQueryFilters()
+            .SingleAsync(a => a.Id == holding.AccountId, cancellationToken);
 
         var sectorName = holding.SectorId is null
             ? null
@@ -77,6 +84,7 @@ public class GetHoldingByIdQueryHandler(IApplicationDbContext db, IOptions<Insig
                     : PricingMode.NeedsQuantity
                 : PricingMode.Manual,
             holding.ExcludeFromAiAnalysis,
-            nextAnalysisAvailableAt);
+            nextAnalysisAvailableAt,
+            holding.DeletedAt);
     }
 }

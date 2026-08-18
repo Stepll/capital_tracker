@@ -27,4 +27,9 @@ public record HoldingDetailDto(
     bool ExcludeFromAiAnalysis,
     // Null when an analysis can be run right now. Surfaced on read so the button
     // can be disabled before the click rather than after a wasted round trip.
-    DateTime? NextAnalysisAvailableAt);
+    DateTime? NextAnalysisAvailableAt,
+    // Set once the holding is deleted. This query is the only one that looks past the
+    // soft-delete filter, so the page still opens — links to it have to keep working —
+    // and renders read-only. Every other handler reads the filtered set, where a deleted
+    // holding simply isn't there.
+    DateTime? DeletedAt);

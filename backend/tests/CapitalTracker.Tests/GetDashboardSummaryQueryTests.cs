@@ -138,4 +138,49 @@ public class GetDashboardSummaryQueryTests
             RateToUah = toUah,
             Date = Today.AddDays(-daysAgo),
         });
+
+    [Fact]
+    public async Task Keeps_a_deleted_holding_in_the_history_for_the_dates_it_was_held()
+    {
+        // The bug soft deletion exists to prevent: a hard delete took the holding's
+        // valuation snapshots with it, so an asset sold today vanished from March too
+        // and the whole past net worth shrank.
+        await using var db = TestDbContext.Create();
+
+        var holding = AddHolding(db, AddAccount(db, "UAH"));
+        AddSnapshot(db, holding, 100m, "UAH", daysAgo: 5);
+        holding.DeletedAt = DateTime.UtcNow.AddDays(-2);
+        await db.SaveChangesAsync(default);
+
+        var result = await Run(db, displayCurrency: "UAH");
+
+        Assert.Equal(100m, result.NetWorthHistory.Single(p => p.Date == Today.AddDays(-5)).Value);
+        Assert.Equal(0m, result.NetWorthHistory.Single(p => p.Date == Today).Value);
+        Assert.Equal(0m, result.TotalNetWorth);
+        Assert.Empty(result.AllocationByType);
+    }
+
+    [Fact]
+    public async Task Stops_counting_a_deleted_holding_from_the_day_it_was_deleted()
+    {
+        await using var db = TestDbContext.Create();
+
+        var account = AddAccount(db, "UAH");
+        var kept = AddHolding(db, account);
+        AddSnapshot(db, kept, 10m, "UAH", daysAgo: 5);
+        AddSnapshot(db, kept, 10m, "UAH", daysAgo: 1);
+
+        var sold = AddHolding(db, account);
+        AddSnapshot(db, sold, 100m, "UAH", daysAgo: 5);
+        sold.DeletedAt = DateTime.UtcNow.AddDays(-3);
+        await db.SaveChangesAsync(default);
+
+        var result = await Run(db, displayCurrency: "UAH");
+
+        // Held five days ago, gone by yesterday. (The series only has points on dates
+        // that carry a snapshot, plus today — it is sparse by design.)
+        Assert.Equal(110m, result.NetWorthHistory.Single(p => p.Date == Today.AddDays(-5)).Value);
+        Assert.Equal(10m, result.NetWorthHistory.Single(p => p.Date == Today.AddDays(-1)).Value);
+        Assert.Equal(10m, result.TotalNetWorth);
+    }
 }

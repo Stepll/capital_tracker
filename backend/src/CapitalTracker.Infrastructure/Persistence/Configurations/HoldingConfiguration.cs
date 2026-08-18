@@ -32,5 +32,11 @@ public class HoldingConfiguration : IEntityTypeConfiguration<Holding>
             .Metadata.SetValueComparer(dictionaryComparer);
 
         builder.Property(h => h.Quantity).HasPrecision(28, 10);
+
+        // Same default-safe rule as AccountConfiguration: twelve places read Holdings,
+        // and one forgotten filter would put a deleted asset back into the net worth.
+        // Deleting an account stamps its holdings too, so this single predicate covers
+        // both cases without a join into Account.
+        builder.HasQueryFilter(h => h.DeletedAt == null);
     }
 }

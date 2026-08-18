@@ -15,7 +15,22 @@ public class DeleteAccountCommandHandler(IApplicationDbContext db)
         if (account is null)
             return false;
 
-        db.Accounts.Remove(account);
+        var deletedAt = DateTime.UtcNow;
+        account.DeletedAt = deletedAt;
+
+        // Stamped explicitly rather than left to the database cascade: the cascade would
+        // hard-delete the holdings and their valuation history, which is exactly what
+        // soft deletion exists to prevent. The same timestamp on both keeps the holding
+        // filter a single predicate — it never has to join back into Account.
+        var holdings = await db.Holdings
+            .Where(h => h.AccountId == account.Id)
+            .ToListAsync(cancellationToken);
+
+        foreach (var holding in holdings)
+        {
+            holding.DeletedAt = deletedAt;
+        }
+
         await db.SaveChangesAsync(cancellationToken);
         return true;
     }

@@ -15,9 +15,11 @@ public class DeleteHoldingCommandHandler(IApplicationDbContext db)
         if (holding is null)
             return false;
 
-        var snapshots = db.ValuationSnapshots.Where(v => v.HoldingId == request.Id);
-        db.ValuationSnapshots.RemoveRange(snapshots);
-        db.Holdings.Remove(holding);
+        // Marked, not removed — and the ValuationSnapshots stay untouched. Deleting them
+        // (which this used to do) silently rewrote the net worth chart for every past
+        // date the asset was held. The global query filter takes it out of every current
+        // figure from here on; the history keeps counting it up to this moment.
+        holding.DeletedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
         return true;
     }

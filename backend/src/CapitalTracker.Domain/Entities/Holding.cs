@@ -47,6 +47,16 @@ public class Holding
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    /// <summary>
+    /// When the owner deleted this holding, or null while it is held. Deletion is soft:
+    /// a hard delete would take the holding's ValuationSnapshots with it and thereby
+    /// rewrite the portfolio's past — the net worth chart is computed from whatever
+    /// snapshots exist, so an asset sold today would look like it never existed in March.
+    /// Kept out of every read path by a global query filter; the history series is the
+    /// one place that deliberately looks past it, counting the holding up to this date.
+    /// </summary>
+    public DateTime? DeletedAt { get; set; }
+
     public List<Transaction> Transactions { get; set; } = [];
     public List<ValuationSnapshot> ValuationSnapshots { get; set; } = [];
 }

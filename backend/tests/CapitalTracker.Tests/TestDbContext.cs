@@ -47,6 +47,12 @@ public class TestDbContext(DbContextOptions<TestDbContext> options) : DbContext(
             d => JsonSerializer.Serialize(d, Json),
             s => JsonSerializer.Deserialize<Dictionary<string, string>>(s, Json) ?? new());
 
+        // Mirrored for the same reason as the converters above: the soft-delete filters
+        // are what keep a deleted holding out of every total, so a test context without
+        // them would happily prove behaviour production doesn't have.
+        modelBuilder.Entity<Account>().HasQueryFilter(a => a.DeletedAt == null);
+        modelBuilder.Entity<Holding>().HasQueryFilter(h => h.DeletedAt == null);
+
         modelBuilder.Entity<AiInsight>().Property(i => i.Facts).HasConversion(
             f => JsonSerializer.Serialize(f, Json),
             s => JsonSerializer.Deserialize<List<AnalysisFact>>(s, Json) ?? new());

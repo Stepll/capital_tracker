@@ -1,5 +1,6 @@
 using CapitalTracker.Application.Common;
 using CapitalTracker.Application.Common.Interfaces;
+using CapitalTracker.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,8 +27,17 @@ public class GetDashboardSummaryQueryHandler(IApplicationDbContext db)
             converter.Convert(value, currency, displayCurrency);
 
         var accounts = await db.Accounts.ToListAsync(cancellationToken);
-        var holdings = await db.Holdings.ToListAsync(cancellationToken);
         var snapshots = await db.ValuationSnapshots.ToListAsync(cancellationToken);
+
+        // The one read that deliberately looks past the soft-delete filter. Deleted
+        // holdings are excluded from every current figure below, but the history has to
+        // keep them for the dates they were actually held — dropping them there is the
+        // very rewriting of the past that soft deletion exists to prevent.
+        var allHoldings = await db.Holdings.IgnoreQueryFilters().ToListAsync(cancellationToken);
+        var holdings = allHoldings.Where(h => h.DeletedAt is null).ToList();
+
+        static bool HeldOn(Holding holding, DateOnly date) =>
+            holding.DeletedAt is null || date < DateOnly.FromDateTime(holding.DeletedAt.Value);
 
         var accountById = accounts.ToDictionary(a => a.Id);
         var snapshotsByHolding = snapshots.ToLookup(s => s.HoldingId);
@@ -62,7 +72,7 @@ public class GetDashboardSummaryQueryHandler(IApplicationDbContext db)
         var allDates = snapshots.Select(s => s.Date).Append(today).Distinct().OrderBy(d => d).ToList();
         var history = allDates.Select(date =>
         {
-            var asOfTotal = holdings.Sum(h =>
+            var asOfTotal = allHoldings.Where(h => HeldOn(h, date)).Sum(h =>
             {
                 var asOf = snapshotsByHolding[h.Id]
                     .Where(s => s.Date <= date)
