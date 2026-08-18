@@ -48,6 +48,10 @@ services:
         condition: service_healthy
     environment:
       ConnectionStrings__Default: "Host=postgres;Port=5432;Database=capital_tracker;Username=postgres;Password=postgres"
+      # Optional: without it the daily price sync logs that it's unconfigured and
+      # holdings keep their last manual value.
+      Finnhub__ApiKey: "${FINNHUB_API_KEY:-}"
+      Logging__LogLevel__CapitalTracker: "${APP_LOG_LEVEL:-Information}"
 
   frontend:
     build:

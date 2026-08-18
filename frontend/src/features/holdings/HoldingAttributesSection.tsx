@@ -80,6 +80,11 @@ export function HoldingAttributesSection({ holding }: Props) {
           value={quantity}
           onChange={(e) => setQuantity(e.target.value)}
         />
+        {holding.pricingMode === "NeedsQuantity" && (
+          <em className={styles.fieldHint}>
+            Вкажіть кількість — тоді вартість оновлюватиметься щодня автоматично.
+          </em>
+        )}
       </label>
 
       {template.map((f) => (

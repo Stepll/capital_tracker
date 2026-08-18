@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Anthropic;
 using Anthropic.Models.Messages;
+using CapitalTracker.Application.Common;
 using CapitalTracker.Application.Common.Interfaces;
 using CapitalTracker.Application.Insights;
 using CapitalTracker.Domain.Enums;
@@ -28,10 +29,9 @@ public class AnthropicHoldingAnalysisGenerator(
     {
         MarketDataBlock? marketData = null;
 
-        // Finnhub free tier identifies crypto by exchange-prefixed symbols (BINANCE:BTCUSDT)
-        // that we cannot derive from a bare ticker, so only listed equities go through it.
+        // Shared with the price job so the two can't drift on what counts as quotable.
         // Everything else — property, deposits, crypto — relies on web search alone.
-        if (!string.IsNullOrWhiteSpace(request.Symbol) && request.AccountType == AccountType.Brokerage)
+        if (MarketPricing.CanQuote(request.Symbol, request.AccountType))
         {
             yield return AnalysisGenerationEvent.AtPhase(InsightPhase.MarketData);
             marketData = await finnhub.GetAsync(request.Symbol!, cancellationToken);

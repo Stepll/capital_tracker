@@ -69,6 +69,11 @@ public class GetHoldingByIdQueryHandler(IApplicationDbContext db, IOptions<Insig
                 .ToList(),
             holding.Attributes,
             holding.SecretAttributes.Keys.ToList(),
+            MarketPricing.CanQuote(holding.Symbol, account.Type)
+                ? MarketPricing.CanAutoPrice(holding.Symbol, account.Type, holding.Quantity)
+                    ? PricingMode.Automatic
+                    : PricingMode.NeedsQuantity
+                : PricingMode.Manual,
             holding.ExcludeFromAiAnalysis,
             nextAnalysisAvailableAt);
     }

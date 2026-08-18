@@ -24,6 +24,8 @@ export interface HoldingDetail {
   valuationHistory: ValuationPoint[];
   attributes: Record<string, string>;
   secretAttributeKeys: string[];
+  /** "Automatic" = refreshed daily; "NeedsQuantity" = quotable but missing units. */
+  pricingMode: "Manual" | "Automatic" | "NeedsQuantity";
   excludeFromAiAnalysis: boolean;
   /** Null when an analysis can be run right now; otherwise when the cooldown lifts. */
   nextAnalysisAvailableAt: string | null;
