@@ -18,9 +18,10 @@ function extraEntries(attributes: Record<string, string>, templateKeys: string[]
 
 interface Props {
   holding: HoldingDetail;
+  readOnly?: boolean;
 }
 
-export function HoldingAttributesSection({ holding }: Props) {
+export function HoldingAttributesSection({ holding, readOnly = false }: Props) {
   const template = ATTRIBUTE_TEMPLATES[holding.accountType];
   const secretTemplate = SECRET_ATTRIBUTE_TEMPLATES[holding.accountType];
   const templateKeys = template.map((f) => f.key);
@@ -69,6 +70,10 @@ export function HoldingAttributesSection({ holding }: Props) {
   return (
     <section className={styles.section}>
       <h2 className={styles.sectionTitle}>Деталі активу</h2>
+
+      {/* A disabled fieldset switches off every control inside it in one go — cheaper and
+          harder to get wrong than threading `disabled` through each input. */}
+      <fieldset className={styles.fieldset} disabled={readOnly}>
 
       <label className={styles.field}>
         <span>Кількість одиниць</span>
@@ -190,9 +195,12 @@ export function HoldingAttributesSection({ holding }: Props) {
         </span>
       </label>
 
-      <button className={styles.primaryButton} onClick={handleSave} disabled={updateDetails.isPending}>
-        {updateDetails.isPending ? "Зберігаємо…" : "Зберегти деталі"}
-      </button>
+      {!readOnly && (
+        <button className={styles.primaryButton} onClick={handleSave} disabled={updateDetails.isPending}>
+          {updateDetails.isPending ? "Зберігаємо…" : "Зберегти деталі"}
+        </button>
+      )}
+      </fieldset>
     </section>
   );
 }

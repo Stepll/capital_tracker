@@ -16,9 +16,10 @@ const dateTimeFormatter = new Intl.DateTimeFormat("uk-UA", {
 
 interface Props {
   holding: HoldingDetail;
+  readOnly?: boolean;
 }
 
-export function HoldingInsightsPanel({ holding }: Props) {
+export function HoldingInsightsPanel({ holding, readOnly = false }: Props) {
   const queryClient = useQueryClient();
   const { data: insights, isLoading } = useHoldingInsights(holding.id);
 
@@ -35,7 +36,11 @@ export function HoldingInsightsPanel({ holding }: Props) {
   const [latest, ...history] = insights ?? [];
 
   const cooldownUntil = holding.nextAnalysisAvailableAt;
-  const blocked = holding.excludeFromAiAnalysis
+  // Past analyses stay readable — that is the point of keeping a deleted asset around —
+  // but a new run is refused by the server anyway, so the button says so up front.
+  const blocked = readOnly
+    ? "Актив видалено — попередні аналізи лишаються, нові не запускаються."
+    : holding.excludeFromAiAnalysis
     ? "Для цього активу AI-аналіз вимкнено."
     : cooldownUntil
       ? `Наступний аналіз буде доступний ${dateTimeFormatter.format(new Date(cooldownUntil))}.`

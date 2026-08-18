@@ -29,6 +29,8 @@ export interface HoldingDetail {
   excludeFromAiAnalysis: boolean;
   /** Null when an analysis can be run right now; otherwise when the cooldown lifts. */
   nextAnalysisAvailableAt: string | null;
+  /** Set once deleted. The page still opens — read-only — so links to it keep working. */
+  deletedAt: string | null;
 }
 
 export function useHoldingDetail(id: string | undefined) {

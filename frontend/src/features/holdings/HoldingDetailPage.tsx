@@ -10,6 +10,8 @@ import styles from "./HoldingDetailPage.module.css";
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
+const deletedFormatter = new Intl.DateTimeFormat("uk-UA", { day: "2-digit", month: "long", year: "numeric" });
+
 export function HoldingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: holding, isLoading } = useHoldingDetail(id);
@@ -24,6 +26,7 @@ export function HoldingDetailPage() {
   if (!holding) return <div className={styles.page}>Актив не знайдено.</div>;
 
   const currency = valuationCurrency ?? holding.currency;
+  const isDeleted = holding.deletedAt !== null;
 
   const handleAddValuation = async () => {
     if (!newValue) return;
@@ -50,6 +53,12 @@ export function HoldingDetailPage() {
             {holding.quantity ? ` · ${holding.quantity} од.` : ""}
           </p>
         )}
+        {isDeleted && (
+          <p className={styles.deletedBanner}>
+            Актив видалено {deletedFormatter.format(new Date(holding.deletedAt!))} — сторінка лишається
+            для перегляду історії.
+          </p>
+        )}
         <div className={styles.valueRow}>
           <p className={styles.value}>
             {holding.currentValue.toLocaleString("uk-UA")} {holding.currency}
@@ -74,6 +83,7 @@ export function HoldingDetailPage() {
             />
           </section>
 
+          {!isDeleted && (
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Оновити вартість</h2>
             <div className={styles.updateRow}>
@@ -124,12 +134,13 @@ export function HoldingDetailPage() {
                   : "Значення на вже наявну дату замінить попереднє — зручно виправити помилку."}
             </p>
           </section>
+          )}
 
-          <HoldingAttributesSection key={holding.id} holding={holding} />
+          <HoldingAttributesSection key={holding.id} holding={holding} readOnly={isDeleted} />
         </div>
 
         <div className={styles.rightColumn}>
-          <HoldingInsightsPanel holding={holding} />
+          <HoldingInsightsPanel holding={holding} readOnly={isDeleted} />
         </div>
       </div>
     </div>
