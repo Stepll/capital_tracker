@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useSectors } from "../sectors/useSectors";
-import { useGenerateInsight, useInsights } from "./useInsights";
+import { HoldingAnalysisModal } from "./HoldingAnalysisModal";
+import { useInsights, type AiInsight } from "./useInsights";
 import styles from "./InsightsPage.module.css";
 
 const dateTimeFormatter = new Intl.DateTimeFormat("uk-UA", {
@@ -10,10 +11,19 @@ const dateTimeFormatter = new Intl.DateTimeFormat("uk-UA", {
   minute: "2-digit",
 });
 
+function factCount(count: number) {
+  const lastTwo = count % 100;
+  const last = count % 10;
+  if (lastTwo >= 11 && lastTwo <= 14) return `${count} фактів`;
+  if (last === 1) return `${count} факт`;
+  if (last >= 2 && last <= 4) return `${count} факти`;
+  return `${count} фактів`;
+}
+
 export function InsightsPage() {
-  const { data: sectors } = useSectors();
   const { data: insights, isLoading } = useInsights();
-  const generateInsight = useGenerateInsight();
+  // Reopened in the same modal the live run uses, with no stream attached.
+  const [shown, setShown] = useState<AiInsight | null>(null);
 
   return (
     <div className={styles.page}>
@@ -23,46 +33,60 @@ export function InsightsPage() {
         </Link>
         <h1 className={styles.title}>AI-аналітика</h1>
         <p className={styles.subtitle}>
-          Секторальний аналіз портфеля. Функція в розробці — кнопки нижче поки що заглушки.
+          Архів усіх аналізів, які колись запускались. Аналізи видалених активів лишаються тут —
+          за кожен уже заплачено.
         </p>
       </header>
 
-      <section className={styles.sectorGrid}>
-        {sectors?.map((sector) => (
-          <button
-            key={sector.id}
-            className={styles.sectorButton}
-            onClick={() => generateInsight.mutate(sector.id)}
-            disabled={generateInsight.isPending}
-          >
-            {sector.name}
-          </button>
-        ))}
-      </section>
-
       <section className={styles.feed}>
-        <h2 className={styles.feedTitle}>Історія звітів</h2>
-
         {isLoading && <p className={styles.hint}>Завантаження…</p>}
 
         {!isLoading && insights?.length === 0 && (
-          <p className={styles.hint}>Ще немає жодного звіту — натисни на сектор вище.</p>
+          <p className={styles.hint}>
+            Ще немає жодного аналізу — запусти його на сторінці будь-якого активу.
+          </p>
         )}
 
         <div className={styles.list}>
           {insights?.map((insight) => (
             <article key={insight.id} className={styles.card}>
               <div className={styles.cardHeader}>
-                <span className={styles.cardSector}>{insight.sectorName}</span>
+                <span className={styles.cardSubject}>
+                  {insight.scope === "Portfolio" ? "Портфель" : (insight.holdingName ?? "Актив")}
+                  {insight.isHoldingDeleted && <span className={styles.deletedTag}>видалено</span>}
+                </span>
                 <span className={styles.cardDate}>
                   {dateTimeFormatter.format(new Date(insight.generatedAt))}
                 </span>
               </div>
-              <p className={styles.cardSummary}>{insight.summary}</p>
+
+              <button type="button" className={styles.cardBody} onClick={() => setShown(insight)}>
+                <p className={styles.cardSummary}>{insight.summary}</p>
+                {insight.facts.length > 0 && (
+                  <span className={styles.factCount}>{factCount(insight.facts.length)} →</span>
+                )}
+              </button>
+
+              {insight.holdingId && (
+                <Link to={`/holdings/${insight.holdingId}`} className={styles.cardLink}>
+                  Сторінка активу
+                </Link>
+              )}
             </article>
           ))}
         </div>
       </section>
+
+      {shown && (
+        <HoldingAnalysisModal
+          analysis={shown}
+          phase={null}
+          detail={null}
+          error={null}
+          retryAt={null}
+          onClose={() => setShown(null)}
+        />
+      )}
     </div>
   );
 }

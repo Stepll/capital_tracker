@@ -1,32 +1,28 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../shared/api/client";
 import type { AnalysisFact } from "./insightTypes";
 
+export type InsightScope = "Holding" | "Portfolio";
+
 export interface AiInsight {
   id: string;
-  sectorId: string | null;
-  sectorName: string | null;
+  scope: InsightScope;
   holdingId: string | null;
+  /** Name of the analysed asset — still filled in after the asset was deleted. */
+  holdingName: string | null;
+  isHoldingDeleted: boolean;
   generatedAt: string;
   summary: string;
   sourceUrls: string[];
-  /** Empty for sector-level insights, which are still stubbed. */
+  /** Empty on rows written before the pipeline produced structured facts. */
   facts: AnalysisFact[];
 }
 
+/** The whole archive: every analysis ever run, portfolio-level and per-asset alike. */
 export function useInsights() {
   return useQuery({
     queryKey: ["insights"],
     queryFn: async () => (await apiClient.get<AiInsight[]>("/insights")).data,
-  });
-}
-
-export function useGenerateInsight() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (sectorId: string) =>
-      (await apiClient.post<AiInsight>("/insights/generate", { sectorId })).data,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["insights"] }),
   });
 }
 
