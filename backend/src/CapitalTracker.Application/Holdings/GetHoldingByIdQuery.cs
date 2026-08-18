@@ -38,7 +38,9 @@ public class GetHoldingByIdQueryHandler(IApplicationDbContext db, IOptions<Insig
 
         // History can be mixed-currency — a UAH figure entered by hand before the holding
         // was recognised as USD-denominated, then USD rows from the price job. The chart
-        // is labelled with one currency, so the series is converted into the current one.
+        // is labelled with one currency, so the series is converted into the current one,
+        // each point at the rate in effect on its own date. (A single-currency series
+        // never reaches the rate table at all — the conversion short-circuits.)
         var converter = await CurrencyConverter.LoadAsync(db, cancellationToken);
 
         var lastAnalysedAt = await db.AiInsights
@@ -65,7 +67,7 @@ public class GetHoldingByIdQueryHandler(IApplicationDbContext db, IOptions<Insig
             sectorName,
             holding.CreatedAt,
             snapshots
-                .Select(v => new ValuationPointDto(v.Date, converter.Convert(v.Value, v.Currency, currency)))
+                .Select(v => new ValuationPointDto(v.Date, converter.ConvertAsOf(v.Value, v.Currency, currency, v.Date)))
                 .ToList(),
             holding.Attributes,
             holding.SecretAttributes.Keys.ToList(),
