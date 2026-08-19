@@ -65,60 +65,21 @@ public class StreamHoldingInsightCommandHandler(
         // throw is wrapped in a helper returning null on failure and yielded outside it.
         // Without this a database hiccup would drop the connection with no frame at all,
         // leaving the modal to guess what happened.
-        var analysisRequest = await TryAsync(() => BuildRequestAsync(holding, cancellationToken), "building the analysis request");
+        var analysisRequest = await InsightGenerationPipeline.TryAsync(
+            () => BuildRequestAsync(holding, cancellationToken), logger, "building the analysis request");
         if (analysisRequest is null)
         {
             yield return InsightStreamEvent.Failed(InsightErrorCode.Internal);
             yield break;
         }
 
-        await foreach (var e in generator.GenerateAsync(analysisRequest, cancellationToken))
+        await foreach (var e in InsightGenerationPipeline.RunAsync(
+            generator.GenerateAsync(analysisRequest, cancellationToken),
+            result => InsightGenerationPipeline.TryAsync(
+                () => SaveAsync(holding, result), logger, "saving the analysis"),
+            cancellationToken))
         {
-            switch (e.Kind)
-            {
-                case GenerationEventKind.Phase:
-                    yield return InsightStreamEvent.AtPhase(e.Phase!.Value, e.Detail);
-                    break;
-
-                case GenerationEventKind.Failed:
-                    yield return InsightStreamEvent.Failed(e.ErrorCode ?? InsightErrorCode.Upstream);
-                    yield break;
-
-                case GenerationEventKind.Result:
-                    yield return InsightStreamEvent.AtPhase(InsightPhase.Saving);
-
-                    var saved = await TryAsync(() => SaveAsync(holding, e.Result!), "saving the analysis");
-                    yield return saved is null
-                        ? InsightStreamEvent.Failed(InsightErrorCode.Internal)
-                        : InsightStreamEvent.Completed(saved);
-                    yield break;
-            }
-        }
-
-        // The generator finished without a terminal event — treat as a failed run so the
-        // client never sits waiting on a stream that has nothing left to send.
-        yield return InsightStreamEvent.Failed(InsightErrorCode.Upstream);
-    }
-
-    /// <summary>
-    /// Runs a step that touches the database, turning failure into null so the caller can
-    /// yield an event for it. Cancellation is rethrown — that is the client hanging up,
-    /// not an error, and the controller handles it.
-    /// </summary>
-    private async Task<T?> TryAsync<T>(Func<Task<T>> step, string what) where T : class
-    {
-        try
-        {
-            return await step();
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Holding analysis failed while {What}.", what);
-            return null;
+            yield return e;
         }
     }
 
@@ -161,7 +122,7 @@ public class StreamHoldingInsightCommandHandler(
                 : new PreviousAnalysis(previous.GeneratedAt, previous.ToDto().Facts));
     }
 
-    private async Task<AiInsightDto> SaveAsync(Holding holding, HoldingAnalysisResult result)
+    private async Task<AiInsightDto> SaveAsync(Holding holding, AnalysisResult result)
     {
         var insight = new AiInsight
         {

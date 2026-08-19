@@ -31,5 +31,9 @@ public record HoldingAnalysisRequest(
 /// </summary>
 public record PreviousAnalysis(DateTime GeneratedAt, IReadOnlyList<AnalysisFactDto> Facts);
 
-/// <summary>What the model produced, before it becomes a persisted AiInsight.</summary>
-public record HoldingAnalysisResult(string Summary, IReadOnlyList<AnalysisFactDto> Facts);
+/// <summary>
+/// What the model produced, before it becomes a persisted AiInsight. Shared by every
+/// scope — a portfolio analysis comes back in the same shape as a per-asset one, which
+/// is what lets the archive and the UI treat them alike.
+/// </summary>
+public record AnalysisResult(string Summary, IReadOnlyList<AnalysisFactDto> Facts);

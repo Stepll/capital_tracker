@@ -9,7 +9,7 @@ public enum GenerationEventKind
 
 /// <summary>
 /// What the generator emits as it works. Distinct from <see cref="InsightStreamEvent"/>
-/// because this side carries an unsaved <see cref="HoldingAnalysisResult"/>, while the
+/// because this side carries an unsaved <see cref="AnalysisResult"/>, while the
 /// client-facing side carries a persisted <see cref="AiInsightDto"/> with an id.
 /// </summary>
 public record AnalysisGenerationEvent
@@ -25,14 +25,14 @@ public record AnalysisGenerationEvent
     /// </summary>
     public string? Detail { get; init; }
 
-    public HoldingAnalysisResult? Result { get; init; }
+    public AnalysisResult? Result { get; init; }
 
     public InsightErrorCode? ErrorCode { get; init; }
 
     public static AnalysisGenerationEvent AtPhase(InsightPhase phase, string? detail = null) =>
         new() { Kind = GenerationEventKind.Phase, Phase = phase, Detail = detail };
 
-    public static AnalysisGenerationEvent Completed(HoldingAnalysisResult result) =>
+    public static AnalysisGenerationEvent Completed(AnalysisResult result) =>
         new() { Kind = GenerationEventKind.Result, Result = result };
 
     public static AnalysisGenerationEvent Failed(InsightErrorCode code) =>

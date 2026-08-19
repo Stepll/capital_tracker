@@ -23,6 +23,9 @@ public enum InsightErrorCode
     /// <summary>The holding is opted out of AI analysis.</summary>
     Excluded,
 
+    /// <summary>Nothing to analyse — an empty portfolio, or every holding opted out.</summary>
+    Empty,
+
     /// <summary>Too soon since the last successful analysis.</summary>
     Cooldown,
 

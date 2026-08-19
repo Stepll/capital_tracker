@@ -127,7 +127,7 @@ public class StreamHoldingInsightCommandTests
             new DateOnly(2026, 8, 14));
 
         var generator = new FakeAnalysisGenerator(() =>
-            [AnalysisGenerationEvent.Completed(new HoldingAnalysisResult("Підсумок", [fact]))]);
+            [AnalysisGenerationEvent.Completed(new AnalysisResult("Підсумок", [fact]))]);
 
         var events = await RunAsync(db, generator, holding.Id);
 

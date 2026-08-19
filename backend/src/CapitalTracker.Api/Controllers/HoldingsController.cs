@@ -1,9 +1,7 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using CapitalTracker.Api.Streaming;
 using CapitalTracker.Application.Holdings;
 using CapitalTracker.Application.Insights;
 using MediatR;
-using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CapitalTracker.Api.Controllers;
@@ -22,16 +20,6 @@ public record UpdateHoldingDetailsRequest(
 [Route("api")]
 public class HoldingsController(ISender sender) : ControllerBase
 {
-    private static readonly TimeSpan HeartbeatInterval = TimeSpan.FromSeconds(15);
-
-    // The AddJsonOptions configured in Program.cs applies to MVC formatters only, not to a
-    // hand-rolled JsonSerializer.Serialize — so the SSE payloads have to repeat the same
-    // settings, or enums would go out as integers here and as names everywhere else.
-    private static readonly JsonSerializerOptions SseJson = new(JsonSerializerDefaults.Web)
-    {
-        Converters = { new JsonStringEnumConverter() },
-    };
-
     [HttpGet("accounts/{accountId:guid}/holdings")]
     public async Task<ActionResult<List<HoldingDto>>> GetByAccount(Guid accountId) =>
         Ok(await sender.Send(new GetHoldingsByAccountQuery(accountId)));
@@ -89,85 +77,11 @@ public class HoldingsController(ISender sender) : ControllerBase
     /// abort the (billed) model call instead of letting it run on unwatched.
     /// </summary>
     [HttpPost("holdings/{id:guid}/insights/stream")]
-    public async Task StreamInsight(Guid id, CancellationToken cancellationToken)
-    {
-        Response.Headers.ContentType = "text/event-stream";
-        Response.Headers.CacheControl = "no-cache, no-transform";
-        // Tells nginx to skip proxy buffering for this response only, which is what lets
-        // the frames reach the browser as they happen without touching the VPS config.
-        // (No Connection: keep-alive — it is hop-by-hop and invalid under HTTP/2.)
-        Response.Headers["X-Accel-Buffering"] = "no";
-        HttpContext.Features.Get<IHttpResponseBodyFeature>()?.DisableBuffering();
-
-        // Commit the headers before any work starts, so the client sees an open stream
-        // immediately rather than after the first phase lands.
-        await Response.Body.FlushAsync(cancellationToken);
-
-        try
-        {
-            await WriteEventStreamAsync(id, cancellationToken);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            // The user closed the modal or navigated away. Expected, not an error —
-            // without this every close would log an unhandled exception.
-        }
-    }
-
-    private async Task WriteEventStreamAsync(Guid id, CancellationToken cancellationToken)
-    {
-        await using var events = sender
-            .CreateStream(new StreamHoldingInsightCommand(id), cancellationToken)
-            .GetAsyncEnumerator(cancellationToken);
-
-        // Race each event against a timer so the connection produces traffic even during a
-        // long silent search. Two reasons: nginx's default 60s proxy_read_timeout resets on
-        // every read, and RequestAborted only fires once a write is attempted after the peer
-        // has gone — so the ping is also what makes cancellation prompt rather than deferred
-        // until the model finishes.
-        var pending = events.MoveNextAsync().AsTask();
-
-        while (true)
-        {
-            // No token on the delay: when an event wins the race the timer is abandoned,
-            // and a cancelled one would fault unobserved every iteration. Letting it run
-            // out harmlessly is cheaper than the plumbing to cancel it cleanly. Aborts
-            // still exit the loop — the writes below carry the token.
-            var heartbeat = Task.Delay(HeartbeatInterval);
-
-            if (await Task.WhenAny(pending, heartbeat) != pending)
-            {
-                await WriteRawAsync(": ping\n\n", cancellationToken);
-                continue;
-            }
-
-            if (!await pending)
-            {
-                break;
-            }
-
-            await WriteEventAsync(events.Current, cancellationToken);
-            pending = events.MoveNextAsync().AsTask();
-        }
-    }
-
-    private async Task WriteEventAsync(InsightStreamEvent e, CancellationToken cancellationToken)
-    {
-        var name = e.Type switch
-        {
-            InsightStreamEventType.Completed => "completed",
-            InsightStreamEventType.Failed => "failed",
-            _ => "phase",
-        };
-
-        await WriteRawAsync($"event: {name}\ndata: {JsonSerializer.Serialize(e, SseJson)}\n\n", cancellationToken);
-    }
-
-    private async Task WriteRawAsync(string frame, CancellationToken cancellationToken)
-    {
-        await Response.WriteAsync(frame, cancellationToken);
-        await Response.Body.FlushAsync(cancellationToken);
-    }
+    public Task StreamInsight(Guid id, CancellationToken cancellationToken) =>
+        InsightSse.StreamAsync(
+            HttpContext,
+            sender.CreateStream(new StreamHoldingInsightCommand(id), cancellationToken),
+            cancellationToken);
 
     [HttpDelete("holdings/{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)

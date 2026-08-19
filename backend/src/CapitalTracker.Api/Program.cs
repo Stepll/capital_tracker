@@ -86,7 +86,10 @@ builder.Services.AddHttpClient<FinnhubClient>(client =>
     client.Timeout = TimeSpan.FromSeconds(8);
 });
 
+// The runner owns the model call; the two generators only build their prompts.
+builder.Services.AddScoped<AnthropicAnalysisRunner>();
 builder.Services.AddScoped<IHoldingAnalysisGenerator, AnthropicHoldingAnalysisGenerator>();
+builder.Services.AddScoped<IPortfolioAnalysisGenerator, AnthropicPortfolioAnalysisGenerator>();
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
