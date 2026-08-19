@@ -19,15 +19,31 @@ export type InsightStreamEvent =
  * body stream. That also means the axios interceptors don't apply — hence the manual
  * 401 handling below.
  */
-export async function streamHoldingInsight(
+export function streamHoldingInsight(
   holdingId: string,
+  onEvent: (event: InsightStreamEvent) => void,
+  signal: AbortSignal,
+): Promise<void> {
+  return streamInsight(`/holdings/${holdingId}/insights/stream`, onEvent, signal);
+}
+
+/** The portfolio as a whole rather than one asset — same stream, same events. */
+export function streamPortfolioInsight(
+  onEvent: (event: InsightStreamEvent) => void,
+  signal: AbortSignal,
+): Promise<void> {
+  return streamInsight("/insights/portfolio/stream", onEvent, signal);
+}
+
+async function streamInsight(
+  path: string,
   onEvent: (event: InsightStreamEvent) => void,
   signal: AbortSignal,
 ): Promise<void> {
   let sawTerminalEvent = false;
 
   try {
-    const response = await fetch(`${apiClient.defaults.baseURL}/holdings/${holdingId}/insights/stream`, {
+    const response = await fetch(`${apiClient.defaults.baseURL}${path}`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${localStorage.getItem(TOKEN_STORAGE_KEY) ?? ""}`,

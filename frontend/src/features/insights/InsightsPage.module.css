@@ -35,6 +35,41 @@
   font-size: 13px;
 }
 
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.primaryAction {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.primaryAction:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.secondaryAction {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 9px 14px;
+  font-size: 13px;
+}
+
+.secondaryAction:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .feed {
   display: flex;
   flex-direction: column;

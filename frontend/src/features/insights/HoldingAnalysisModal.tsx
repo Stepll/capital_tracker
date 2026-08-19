@@ -34,6 +34,8 @@ const PHASE_ORDER: InsightPhase[] = ["Preparing", "MarketData", "Searching", "Th
 interface Props {
   /** Present once the analysis is done, or when reopening one from history. */
   analysis: AiInsight | null;
+  /** What is being analysed — the modal serves both an asset and the whole portfolio. */
+  title?: string;
   phase: InsightPhase | null;
   detail: string | null;
   error: InsightErrorCode | null;
@@ -41,7 +43,15 @@ interface Props {
   onClose: () => void;
 }
 
-export function HoldingAnalysisModal({ analysis, phase, detail, error, retryAt, onClose }: Props) {
+export function HoldingAnalysisModal({
+  analysis,
+  title = "AI-аналіз активу",
+  phase,
+  detail,
+  error,
+  retryAt,
+  onClose,
+}: Props) {
   const isRunning = analysis === null && error === null;
 
   return (
@@ -51,10 +61,10 @@ export function HoldingAnalysisModal({ analysis, phase, detail, error, retryAt, 
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label="AI-аналіз активу"
+        aria-label={title}
       >
         <div className={styles.header}>
-          <h2 className={modalStyles.title}>AI-аналіз активу</h2>
+          <h2 className={modalStyles.title}>{title}</h2>
           {analysis && (
             <span className={styles.date}>{dateTimeFormatter.format(new Date(analysis.generatedAt))}</span>
           )}

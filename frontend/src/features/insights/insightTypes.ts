@@ -34,6 +34,7 @@ export type InsightPhase =
 export type InsightErrorCode =
   | "NotFound"
   | "Excluded"
+  | "Empty"
   | "Cooldown"
   | "Refusal"
   | "Upstream"
@@ -91,6 +92,7 @@ export const PHASE_LABELS: Record<InsightPhase, string> = {
 export const ERROR_LABELS: Record<InsightErrorCode, string> = {
   NotFound: "Актив не знайдено.",
   Excluded: "Для цього активу AI-аналіз вимкнено в налаштуваннях.",
+  Empty: "Нема чого аналізувати — додай активи або зніми виключення з AI-аналізу.",
   Cooldown: "Аналіз робили нещодавно.",
   Refusal: "Модель відмовилася аналізувати цей запит.",
   Upstream: "Не вдалося отримати аналіз. Спробуйте ще раз.",
