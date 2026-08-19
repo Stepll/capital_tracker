@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../shared/api/client";
 import type { AnalysisFact } from "./insightTypes";
 
-export type InsightScope = "Holding" | "Portfolio";
+export type InsightScope = "Holding" | "Portfolio" | "MarketUkraine" | "MarketGlobal";
 
 export interface AiInsight {
   id: string;

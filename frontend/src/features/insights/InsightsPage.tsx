@@ -2,9 +2,13 @@ import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { HoldingAnalysisModal } from "./HoldingAnalysisModal";
-import { streamPortfolioInsight } from "./streamHoldingInsight";
+import {
+  streamMarketInsight,
+  streamPortfolioInsight,
+  type InsightStreamEvent,
+} from "./streamHoldingInsight";
 import type { InsightErrorCode, InsightPhase } from "./insightTypes";
-import { useInsights, type AiInsight } from "./useInsights";
+import { useInsights, type AiInsight, type InsightScope } from "./useInsights";
 import styles from "./InsightsPage.module.css";
 
 const dateTimeFormatter = new Intl.DateTimeFormat("uk-UA", {
@@ -14,7 +18,23 @@ const dateTimeFormatter = new Intl.DateTimeFormat("uk-UA", {
   minute: "2-digit",
 });
 
-const PORTFOLIO_TITLE = "AI-аналіз портфеля";
+/** What each scope is called in the archive, and what the modal is titled. */
+const SCOPE_LABELS: Record<InsightScope, string> = {
+  Holding: "Актив",
+  Portfolio: "Портфель",
+  MarketUkraine: "Ринок України",
+  MarketGlobal: "Світовий ринок",
+};
+
+const MODAL_TITLES: Record<InsightScope, string> = {
+  Holding: "AI-аналіз активу",
+  Portfolio: "AI-аналіз портфеля",
+  MarketUkraine: "AI-огляд ринку України",
+  MarketGlobal: "AI-огляд світового ринку",
+};
+
+/** Which button is mid-run — only that one says so. */
+type RunKind = "Portfolio" | "MarketUkraine" | "MarketGlobal";
 
 function factCount(count: number) {
   const lastTwo = count % 100;
@@ -30,52 +50,57 @@ export function InsightsPage() {
   const { data: insights, isLoading } = useInsights();
 
   const [isOpen, setOpen] = useState(false);
-  const [running, setRunning] = useState(false);
   const [phase, setPhase] = useState<InsightPhase | null>(null);
   const [detail, setDetail] = useState<string | null>(null);
   const [error, setError] = useState<InsightErrorCode | null>(null);
   const [retryAt, setRetryAt] = useState<string | null>(null);
   const [shown, setShown] = useState<AiInsight | null>(null);
-  const [title, setTitle] = useState(PORTFOLIO_TITLE);
+  const [title, setTitle] = useState(MODAL_TITLES.Portfolio);
+  const [running, setRunningKind] = useState<RunKind | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
 
   // Started from the click rather than a useEffect: under StrictMode an effect fires
   // twice in development, and each run is a paid analysis.
-  function start() {
+  function start(kind: RunKind) {
     const controller = new AbortController();
     abortRef.current = controller;
 
-    setTitle(PORTFOLIO_TITLE);
+    setTitle(MODAL_TITLES[kind]);
     setOpen(true);
-    setRunning(true);
+    setRunningKind(kind);
     setShown(null);
     setPhase(null);
     setDetail(null);
     setError(null);
     setRetryAt(null);
 
-    void streamPortfolioInsight(
-      (event) => {
-        if (event.type === "Phase") {
-          setPhase(event.phase);
-          setDetail(event.detail);
-          return;
-        }
+    const onEvent = (event: InsightStreamEvent) => {
+      if (event.type === "Phase") {
+        setPhase(event.phase);
+        setDetail(event.detail);
+        return;
+      }
 
-        setRunning(false);
+      setRunningKind(null);
 
-        if (event.type === "Failed") {
-          setError(event.errorCode);
-          setRetryAt(event.retryAt);
-          return;
-        }
+      if (event.type === "Failed") {
+        setError(event.errorCode);
+        setRetryAt(event.retryAt);
+        return;
+      }
 
-        setShown(event.insight);
-        queryClient.invalidateQueries({ queryKey: ["insights"] });
-      },
-      controller.signal,
-    );
+      setShown(event.insight);
+      queryClient.invalidateQueries({ queryKey: ["insights"] });
+    };
+
+    void (kind === "Portfolio"
+      ? streamPortfolioInsight(onEvent, controller.signal)
+      : streamMarketInsight(
+          kind === "MarketUkraine" ? "ukraine" : "global",
+          onEvent,
+          controller.signal,
+        ));
   }
 
   function close() {
@@ -84,18 +109,18 @@ export function InsightsPage() {
     abortRef.current?.abort();
     abortRef.current = null;
     setOpen(false);
-    setRunning(false);
+    setRunningKind(null);
   }
 
   /** Reopens a stored analysis in the same modal, with no stream attached. */
   function openStored(insight: AiInsight) {
-    setTitle(insight.scope === "Portfolio" ? PORTFOLIO_TITLE : "AI-аналіз активу");
+    setTitle(MODAL_TITLES[insight.scope]);
     setShown(insight);
     setPhase(null);
     setDetail(null);
     setError(null);
     setRetryAt(null);
-    setRunning(false);
+    setRunningKind(null);
     setOpen(true);
   }
 
@@ -107,22 +132,32 @@ export function InsightsPage() {
         </Link>
         <h1 className={styles.title}>AI-аналітика</h1>
         <p className={styles.subtitle}>
-          Аналіз портфеля цілком і архів усіх запусків. Аналізи видалених активів лишаються тут —
-          за кожен уже заплачено.
+          Аналіз портфеля цілком, огляд ринків і архів усіх запусків. Аналізи видалених активів
+          лишаються тут — за кожен уже заплачено.
         </p>
       </header>
 
       <section className={styles.actions}>
-        <button className={styles.primaryAction} onClick={start} disabled={running}>
-          {running ? "Аналізуємо…" : "Аналіз портфеля"}
+        <button
+          className={styles.primaryAction}
+          onClick={() => start("Portfolio")}
+          disabled={running !== null}
+        >
+          {running === "Portfolio" ? "Аналізуємо…" : "Аналіз портфеля"}
         </button>
-        {/* Deliberately inert, not wired to anything: the previous stub on this page
-            wrote real rows into the feed, and that is exactly what leaked. */}
-        <button className={styles.secondaryAction} disabled title="Скоро">
-          Ринок України
+        <button
+          className={styles.secondaryAction}
+          onClick={() => start("MarketUkraine")}
+          disabled={running !== null}
+        >
+          {running === "MarketUkraine" ? "Досліджуємо…" : "Ринок України"}
         </button>
-        <button className={styles.secondaryAction} disabled title="Скоро">
-          Світовий ринок
+        <button
+          className={styles.secondaryAction}
+          onClick={() => start("MarketGlobal")}
+          disabled={running !== null}
+        >
+          {running === "MarketGlobal" ? "Досліджуємо…" : "Світовий ринок"}
         </button>
       </section>
 
@@ -131,7 +166,7 @@ export function InsightsPage() {
 
         {!isLoading && insights?.length === 0 && (
           <p className={styles.hint}>
-            Ще немає жодного аналізу — запусти аналіз портфеля вище або відкрий будь-який актив.
+            Ще немає жодного аналізу — запусти щось із кнопок вище або відкрий будь-який актив.
           </p>
         )}
 
@@ -140,7 +175,9 @@ export function InsightsPage() {
             <article key={insight.id} className={styles.card}>
               <div className={styles.cardHeader}>
                 <span className={styles.cardSubject}>
-                  {insight.scope === "Portfolio" ? "Портфель" : (insight.holdingName ?? "Актив")}
+                  {insight.scope === "Holding"
+                    ? (insight.holdingName ?? SCOPE_LABELS.Holding)
+                    : SCOPE_LABELS[insight.scope]}
                   {insight.isHoldingDeleted && <span className={styles.deletedTag}>видалено</span>}
                 </span>
                 <span className={styles.cardDate}>

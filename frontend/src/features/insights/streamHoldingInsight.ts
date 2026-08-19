@@ -35,6 +35,15 @@ export function streamPortfolioInsight(
   return streamInsight("/insights/portfolio/stream", onEvent, signal);
 }
 
+/** A market rather than anything held — where money could go, given what is held. */
+export function streamMarketInsight(
+  focus: "ukraine" | "global",
+  onEvent: (event: InsightStreamEvent) => void,
+  signal: AbortSignal,
+): Promise<void> {
+  return streamInsight(`/insights/market/${focus}/stream`, onEvent, signal);
+}
+
 async function streamInsight(
   path: string,
   onEvent: (event: InsightStreamEvent) => void,
