@@ -25,4 +25,15 @@ public class InsightsController(ISender sender) : ControllerBase
             HttpContext,
             sender.CreateStream(new StreamPortfolioInsightCommand(this.GetUserId()), cancellationToken),
             cancellationToken);
+
+    /// <summary>
+    /// Researches one market — "ukraine" or "global" — and streams the same events. An
+    /// unknown focus fails model binding, so it is a 400 before any work starts.
+    /// </summary>
+    [HttpPost("market/{focus}/stream")]
+    public Task StreamMarket(MarketFocus focus, CancellationToken cancellationToken) =>
+        InsightSse.StreamAsync(
+            HttpContext,
+            sender.CreateStream(new StreamMarketInsightCommand(this.GetUserId(), focus), cancellationToken),
+            cancellationToken);
 }

@@ -11,5 +11,16 @@ public enum InsightScope
     Holding,
 
     /// <summary>The portfolio as a whole — composition, concentration, currency exposure.</summary>
-    Portfolio
+    Portfolio,
+
+    /// <summary>Where to put money in Ukraine, given what is happening there.</summary>
+    MarketUkraine,
+
+    /// <summary>The same question for markets outside Ukraine.</summary>
+    MarketGlobal
 }
+
+/// <summary>
+/// Stored as int, so values may be appended but never reordered — a renumbering would
+/// silently relabel every analysis already in the archive.
+/// </summary>

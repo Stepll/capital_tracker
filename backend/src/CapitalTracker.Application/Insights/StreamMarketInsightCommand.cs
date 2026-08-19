@@ -9,29 +9,33 @@ using Microsoft.Extensions.Options;
 namespace CapitalTracker.Application.Insights;
 
 /// <summary>
-/// Analyses the portfolio as a whole — composition, concentration, currency exposure —
-/// rather than one asset at a time. Same streaming contract as the per-holding command,
-/// same cooldown reasoning, and its own cooldown window: the two scopes answer different
-/// questions and neither should block the other.
+/// Researches a market — Ukraine or the world — and reports where money could go.
+///
+/// Unlike the other two scopes this one runs even with an empty portfolio: the subject is
+/// the market, and the holdings are context for the answer rather than its subject. Each
+/// focus keeps its own cooldown window, since the two are separate questions.
 /// </summary>
-public record StreamPortfolioInsightCommand(Guid UserId) : IStreamRequest<InsightStreamEvent>;
+public record StreamMarketInsightCommand(Guid UserId, MarketFocus Focus) : IStreamRequest<InsightStreamEvent>;
 
-public class StreamPortfolioInsightCommandHandler(
+public class StreamMarketInsightCommandHandler(
     IApplicationDbContext db,
-    IPortfolioAnalysisGenerator generator,
+    IMarketAnalysisGenerator generator,
     IOptions<InsightsOptions> insightsOptions,
-    ILogger<StreamPortfolioInsightCommandHandler> logger)
-    : IStreamRequestHandler<StreamPortfolioInsightCommand, InsightStreamEvent>
+    ILogger<StreamMarketInsightCommandHandler> logger)
+    : IStreamRequestHandler<StreamMarketInsightCommand, InsightStreamEvent>
 {
     public async IAsyncEnumerable<InsightStreamEvent> Handle(
-        StreamPortfolioInsightCommand request,
+        StreamMarketInsightCommand request,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        // Cheap guards before anything billable, and the cooldown clock is the last stored
-        // portfolio insight — nothing is written unless a run succeeds, so a failed attempt
-        // costs no waiting time.
+        var scope = request.Focus == MarketFocus.Ukraine
+            ? InsightScope.MarketUkraine
+            : InsightScope.MarketGlobal;
+
+        // Cheap guards before anything billable; only successful runs are stored, so a
+        // failed attempt costs no waiting time.
         var lastGeneratedAt = await db.AiInsights
-            .Where(i => i.Scope == InsightScope.Portfolio)
+            .Where(i => i.Scope == scope)
             .MaxAsync(i => (DateTime?)i.GeneratedAt, cancellationToken);
 
         var cooldown = TimeSpan.FromHours(insightsOptions.Value.CooldownHours);
@@ -44,51 +48,43 @@ public class StreamPortfolioInsightCommandHandler(
         yield return InsightStreamEvent.AtPhase(InsightPhase.Preparing);
 
         var analysisRequest = await InsightGenerationPipeline.TryAsync(
-            () => BuildRequestAsync(request.UserId, cancellationToken), logger, "building the portfolio request");
+            () => BuildRequestAsync(request, scope, cancellationToken), logger, "building the market request");
         if (analysisRequest is null)
         {
             yield return InsightStreamEvent.Failed(InsightErrorCode.Internal);
             yield break;
         }
 
-        // An empty portfolio — or one where every asset is opted out — has nothing to say,
-        // and saying it costs a model call. Refused here rather than after the bill.
-        if (analysisRequest.Holdings.Count == 0)
-        {
-            yield return InsightStreamEvent.Failed(InsightErrorCode.Empty);
-            yield break;
-        }
-
         await foreach (var e in InsightGenerationPipeline.RunAsync(
             generator.GenerateAsync(analysisRequest, cancellationToken),
             result => InsightGenerationPipeline.TryAsync(
-                () => SaveAsync(result), logger, "saving the portfolio analysis"),
+                () => SaveAsync(scope, result), logger, "saving the market analysis"),
             cancellationToken))
         {
             yield return e;
         }
     }
 
-    private async Task<PortfolioAnalysisRequest> BuildRequestAsync(Guid userId, CancellationToken cancellationToken)
+    private async Task<MarketAnalysisRequest> BuildRequestAsync(
+        StreamMarketInsightCommand request, InsightScope scope, CancellationToken cancellationToken)
     {
-        var context = await PortfolioContext.BuildAsync(db, userId, cancellationToken);
+        var context = await PortfolioContext.BuildAsync(db, request.UserId, cancellationToken);
 
-        return new PortfolioAnalysisRequest(
+        return new MarketAnalysisRequest(
+            request.Focus,
             context.DisplayCurrency,
             context.TotalValue,
             context.Holdings,
             context.ExcludedHoldingCount,
-            await PortfolioContext.LatestAsync(db, InsightScope.Portfolio, cancellationToken));
+            await PortfolioContext.LatestAsync(db, scope, cancellationToken));
     }
 
-    private async Task<AiInsightDto> SaveAsync(AnalysisResult result)
+    private async Task<AiInsightDto> SaveAsync(InsightScope scope, AnalysisResult result)
     {
         var insight = new AiInsight
         {
             Id = Guid.NewGuid(),
-            Scope = InsightScope.Portfolio,
-            // No holding: this analysis is about the shape of the whole portfolio, and the
-            // archive tells the two apart by scope rather than by which key is set.
+            Scope = scope,
             HoldingId = null,
             Summary = result.Summary,
             Facts = result.Facts
@@ -113,8 +109,7 @@ public class StreamPortfolioInsightCommandHandler(
 
         db.AiInsights.Add(insight);
 
-        // CancellationToken.None on purpose: the model call is already paid for, so a
-        // client that walked away mid-save should still get the result stored.
+        // CancellationToken.None on purpose: the model call is already paid for.
         await db.SaveChangesAsync(CancellationToken.None);
 
         return insight.ToDto();

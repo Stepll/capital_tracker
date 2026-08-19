@@ -90,6 +90,7 @@ builder.Services.AddHttpClient<FinnhubClient>(client =>
 builder.Services.AddScoped<AnthropicAnalysisRunner>();
 builder.Services.AddScoped<IHoldingAnalysisGenerator, AnthropicHoldingAnalysisGenerator>();
 builder.Services.AddScoped<IPortfolioAnalysisGenerator, AnthropicPortfolioAnalysisGenerator>();
+builder.Services.AddScoped<IMarketAnalysisGenerator, AnthropicMarketAnalysisGenerator>();
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
