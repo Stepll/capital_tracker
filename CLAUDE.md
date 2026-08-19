@@ -32,8 +32,8 @@ backend/
       Accounts/      CRUD + список з реальними сумами (TotalValue)
       Holdings/      CRUD, деталі, оцінки з датою, атрибути, секрети
       Sectors/       CRUD + seed дефолтних
-      Insights/      Стрім-команда аналізу, події, DTO фактів, cooldown-опції
-                     (сектор-рівнева генерація — досі заглушка)
+      Insights/      Стрім-команди аналізу (актив + портфель), спільний
+                     InsightGenerationPipeline, події, DTO фактів, cooldown
       Settings/      DisplayCurrency, ExchangeRate
       Dashboard/     GetDashboardSummaryQuery (алокація, історія, конвертація)
       Common/        SupportedCurrencies, IApplicationDbContext, IEncryptionService
@@ -41,7 +41,9 @@ backend/
     CapitalTracker.Infrastructure/
       Auth/          BCryptPasswordHasher, JwtTokenService, UserSeeder
       Security/      AesEncryptionService (секрети холдингів)
-      Ai/            AnthropicHoldingAnalysisGenerator, InsightPrompts,
+      Ai/            AnthropicAnalysisRunner (сам виклик моделі — спільний),
+                     AnthropicHoldingAnalysisGenerator,
+                     AnthropicPortfolioAnalysisGenerator, InsightPrompts,
                      SaveAnalysisTool (JSON-схема strict-tool'а)
       MarketData/    NbuExchangeRateClient, ExchangeRateSyncService,
                      ExchangeRateBackfillService, FinnhubClient
@@ -60,8 +62,9 @@ frontend/
                      HoldingAttributesSection, SecretField, HoldingInsightsPanel,
                      attributeTemplates (шаблони полів per AccountType)
       insights/      HoldingAnalysisModal (картки фактів), streamHoldingInsight
-                     (SSE через fetch), insightTypes (мітки + safeHttpUrl),
-                     InsightsPage (сектор-рівневий фід, ще заглушка)
+                     (SSE через fetch; там же streamPortfolioInsight),
+                     insightTypes (мітки + safeHttpUrl),
+                     InsightsPage (аналіз портфеля + архів усіх запусків)
       sectors/       useSectors
       settings/      SettingsPage (валюта, курси)
     shared/
@@ -192,7 +195,8 @@ ExchangeRate (Date, Currency, RateToUah) — курс НБУ, UAH — анкер
 через SSE**. Результат: короткий `Summary` + список `AnalysisFact` (claim,
 категорія, полярність, впевненість, `IsNew`, джерело), збережений у jsonb.
 
-**Пайплайн** (`StreamHoldingInsightCommand` → `IHoldingAnalysisGenerator`):
+**Пайплайн** (`StreamHoldingInsightCommand` → `IHoldingAnalysisGenerator`; портфельний —
+`StreamPortfolioInsightCommand` → `IPortfolioAnalysisGenerator`, дзеркально):
 1. Дешеві перевірки **до** будь-якого платного виклику: холдинг існує,
    `ExcludeFromAiAnalysis`, cooldown
 2. Пре-фетч Finnhub (тільки якщо є `Holding.Symbol` **і** рахунок `Brokerage` —
@@ -224,6 +228,34 @@ ExchangeRate (Date, Currency, RateToUah) — курс НБУ, UAH — анкер
 вимикає буферизацію для цієї відповіді, а heartbeat `: ping` кожні 15с тримає
 `proxy_read_timeout` (він ресетиться на кожному читанні). Фронтенд читає стрім
 через `fetch` + `ReadableStream` — `EventSource` не вміє слати `Authorization`.
+
+## Портфельний аналіз
+
+`POST /api/insights/portfolio/stream` — той самий SSE-контракт, той самий `save_analysis`
+і той самий формат фактів, що й для активу, тому архів і UI не розрізняють їх узагалі.
+
+- **Спільне все, крім промпту.** `AnthropicAnalysisRunner` тримає сам виклик моделі
+  (стрім, акумуляція `input_json_delta`, `StopReason.Raw()`, парсинг фактів); генератори
+  лише будують `system` + користувацький хід. Дублювати ці граблі вдруге — найгірше, що
+  тут можна зробити. Так само `InsightGenerationPipeline` тримає спільну середину
+  хендлерів (мапінг подій, збереження, гарантія термінальної події)
+- **Вхід — `PortfolioAnalysisRequest`**: список активів (назва, тікер, тип рахунку,
+  вартість + вартість у валюті відображення, кількість) і **факти з їхніх власних
+  останніх аналізів** — ті прогони вже оплачені, перешукувати їх немає сенсу.
+  Приватність структурна, як і для активу, але суворіша: тут нема ні `Attributes`, ні
+  `Notes`, ні тим паче секретів — портфельний рівень міркує про пропорції
+- Активи з `ExcludeFromAiAnalysis` не потрапляють у запит зовсім; у промпт іде **лише
+  їх кількість**, щоб модель знала, що картина неповна, і не знала більше
+- **Ринкові дані — тільки котирування** (`GetQuoteAsync` per тікер), без новин: новини
+  на кожен символ роздували б запит заради контексту, який на цьому рівні майже не
+  використовується
+- **Cooldown окремий від холдингового** (рахується з останнього `Scope == Portfolio`) —
+  два скоупи відповідають на різні питання й не мають блокувати один одного
+- Порожній портфель (або всі активи виключені) → подія `Empty` **до** платного виклику
+
+**Ринкові аналізи (Україна / світ) — дві задизейблені кнопки без бекенду.** Свідомо: у
+них нема ні ендпоінта, ні значення в enum, ні рядків у базі. Попередня заглушка на цій
+сторінці писала справжні рядки — і саме це протекло у фід.
 
 **`/insights` — архів усіх аналізів.** `GetInsightsQuery` віддає всі рядки, найновіші
 першими: і портфельні, і по активах, включно з активами, які вже видалені (звідси
@@ -335,9 +367,10 @@ docker compose up --build
    на сторінці активу, бекфіл дір у курсах НБУ~~ ✅
 8. ~~М'яке видалення активів/рахунків (історія переживає видалення), `/insights`
    як архів усіх аналізів, `AiInsight.Scope` замість секторальної заглушки~~ ✅
-9. **Наступне:** портфельний AI-аналіз на той самий пайплайн (спільне ядро
-   Anthropic-генератора + `PortfolioAnalysisRequest`), потім ринкові аналізи
-   (Україна/світ) окремими скоупами; CRUD транзакцій (buy/sell/dividend —
+9. ~~Портфельний AI-аналіз на тому самому пайплайні (спільний
+   `AnthropicAnalysisRunner` + `PortfolioAnalysisRequest`)~~ ✅
+10. **Наступне:** ринкові аналізи (Україна/світ) окремими скоупами — зараз
+   задизейблені кнопки; CRUD транзакцій (buy/sell/dividend —
    сутність є, форм нема); CSV-імпорт з брокерів/банків; статус «продано» з
    фінальною сумою (видалення без втрати історії вже є — м'яке); нагадування
    про оновлення оцінки неліквідних активів
