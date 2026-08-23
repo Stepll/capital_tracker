@@ -27,17 +27,21 @@ backend/
   CapitalTracker.sln
   src/
     CapitalTracker.Api/            Контролери, JWT-auth, CORS, DI, Program.cs
+      Filters/       DomainValidationExceptionFilter (доменна помилка → 400 з текстом)
     CapitalTracker.Application/    CQRS use-case'и (MediatR), DTO
       Auth/          Login
       Accounts/      CRUD + список з реальними сумами (TotalValue)
       Holdings/      CRUD, деталі, оцінки з датою, атрибути, секрети
       Sectors/       CRUD + seed дефолтних
+      Transactions/  CRUD транзакцій, дві стрічки (актив / рахунок), TransactionRules
       Insights/      Стрім-команди аналізу (актив, портфель, ринок), спільні
                      InsightGenerationPipeline й PortfolioContext, події,
                      DTO фактів, cooldown
       Settings/      DisplayCurrency, ExchangeRate
       Dashboard/     GetDashboardSummaryQuery (алокація, історія, конвертація)
-      Common/        SupportedCurrencies, IApplicationDbContext, IEncryptionService
+      Common/        SupportedCurrencies, HoldingPositions (кількість зі транзакцій),
+                     HoldingDenomination, DomainValidationException,
+                     IApplicationDbContext, IEncryptionService
     CapitalTracker.Domain/         Entities, Enums — без зовнішніх залежностей
     CapitalTracker.Infrastructure/
       Auth/          BCryptPasswordHasher, JwtTokenService, UserSeeder
@@ -60,6 +64,8 @@ frontend/
       auth/          LoginPage
       dashboard/     DashboardPage, AllocationChart (donut), useDashboardSummary
       accounts/      AccountCard, AccountDetailPage, accountTypeColors
+      transactions/  TransactionList (спільний для активу й рахунку),
+                     TransactionFormModal, useTransactions, types (мітки, напрям)
       holdings/      HoldingDetailPage (2-колонковий десктопний лейаут),
                      HoldingAttributesSection, SecretField, HoldingInsightsPanel,
                      attributeTemplates (шаблони полів per AccountType)
@@ -84,7 +90,6 @@ User (єдиний власник; DisplayCurrency — в якій валюті 
 Account (Brokerage/Bank/RealEstate/Cash/Crypto/Other; DeletedAt — м'яке видалення)
   └─ Holding
       ├─ DeletedAt (nullable) — м'яке видалення, див. розділ нижче
-      ├─ Quantity (decimal?) — кількість одиниць (акції, крипта)
       ├─ Notes (string?)
       ├─ Attributes (Dictionary<string,string>, JSONB) — довільні публічні поля
       │    (забудовник/адреса для нерухомості, сервіс для брокера тощо;
@@ -93,7 +98,8 @@ Account (Brokerage/Bank/RealEstate/Cash/Crypto/Other; DeletedAt — м'яке в
       │    AES-256-GCM ciphertext) — логін/пароль до сервісів. Ключ шифрування
       │    (`Encryption:Key`) окремий від JWT-секрету, обов'язковий через .env
       ├─ SectorId (nullable, зараз не виставляється з UI — прибрали селектор)
-      ├─ Transaction[] (Buy/Sell/Dividend/...) — сутність є, CRUD ще нема
+      ├─ Transaction[] (Type, Date, Quantity, UnitPrice, Currency, Notes) —
+           **єдине джерело кількості одиниць**, окремого поля Quantity нема
       └─ ValuationSnapshot[] (Date, Value, Currency, IsManual) — апсерт по
            даті (друге значення на ту саму дату заміщує перше)
 Sector (довідник; 8 дефолтних заseed-жені автоматично при старті; зараз лежить
@@ -132,6 +138,50 @@ ExchangeRate (Date, Currency, RateToUah) — курс НБУ, UAH — анкер
   `AiInsight.HoldingId` не спрацьовує
 - `DeletedAt` — це «прибрав з очей», а не «продав». Статус продажу з фінальною сумою —
   окрема річ, разом із транзакціями
+
+## Транзакції як джерело кількості
+
+`Holding.Quantity` більше не існує як колонка. Кількість одиниць — це згортка транзакцій
+активу (`HoldingPositions`, Application/Common): Buy/Deposit `+`, Sell/Withdrawal `−`,
+Dividend/Rent/Expense `0` (це рух грошей, а не одиниць). Одна реалізація на всіх
+споживачів — сторінка активу, price-job, обидва AI-промпти — свідомо: друга рано чи пізно
+розійшлася б із першою на питанні «що робить Deposit».
+
+- **`null` ≠ `0`.** Немає жодної транзакції, що рухає одиниці → кількість `null`
+  («актив не рахується в одиницях» — квартира, депозит). Нуль — це «було й продано».
+  Саме на `null` тримається `PricingMode.NeedsQuantity`: price-job відмовляється множити
+  котирування на число, якого ніхто не називав
+- **Створення активу відкриває позицію** транзакцією Buy: кількість із форми (або `1`,
+  якщо актив неподільний), ціна = введена вартість / кількість, нотатка
+  `Transaction.OpeningPositionNote`. **Виняток — котирований актив без кількості**
+  (тікер + Brokerage): йому транзакція не пишеться взагалі. Припустити «одна акція»
+  означало б дозволити price-job помножити котирування на цю одиницю й тихо переписати
+  вартість — рівно те, від чого існує `NeedsQuantity`
+- **Міграція `MakeTransactionsTheSourceOfQuantity`** переносить стару колонку в таблицю
+  до її дропу: кожен наявний актив отримує відкриваючий Buy з `COALESCE(Quantity, 1)`
+  одиниць за ціною з **найранішого знімка** (єдина собівартість, яка взагалі існує на
+  цей момент; рядок редагується). Ті самі два винятки, що й у коді, плюс «в активу вже
+  є транзакції». Фільтри м'якого видалення обходяться — видалений актив зберігає історію.
+  Перевірено на живому PostgreSQL 16 із легасі-даними, разом із `Down` (він відновлює
+  колонку із згортки, а не лишає її порожньою)
+- **Валюта транзакції успадковується від активу** (`HoldingDenomination` — останній
+  знімок, потім рахунок), а не від рахунку: та сама пастка, що зі знімками
+- **Запис не може загнати позицію в мінус** — перевіряється і на додаванні, і на
+  редагуванні (зменшити купівлю під уже проданим — той самий випадок). **Видалення
+  не перевіряється**: це аварійний вихід для рядка, якого не мало бути, і охорона тут
+  означала б розкручувати весь ланцюг по порядку заради однієї помилки
+- **`DomainValidationException` → 400 із текстом** (`DomainValidationExceptionFilter`,
+  MVC-фільтр, щоб не чіпати SSE-екшени). Сенс саме в реченні: «не можна продати більше,
+  ніж є» має долетіти до форми, а не перетворитись на 500. Успадкована від
+  `InvalidOperationException`, тож старі кидки лишились сумісними
+- **Дві стрічки транзакцій.** На сторінці активу — з редагуванням і видаленням, і вона
+  показує історію навіть у м'яко видаленого активу (як і решта тієї сторінки). На
+  сторінці рахунку — всі активи одним потоком, **тільки перегляд**: транзакція належить
+  одному активу, і правити її там, де актив лише підпис, — це спосіб покласти одиниці не
+  туди. Ім'я активу там посилання на сторінку, яка вміє
+- `Amount` = `Quantity × UnitPrice` рахується на сервері (два списки не мають округляти
+  по-різному). Грошові типи (дивіденди, оренда, витрата) зберігаються як **1 одиниця за
+  ціною = сумі**, тож форма питає одне число замість двох
 
 ## Auth
 
@@ -284,9 +334,9 @@ ExchangeRate (Date, Currency, RateToUah) — курс НБУ, UAH — анкер
 Секторальної заглушки більше нема — `GenerateInsightCommand`, `POST /insights/generate`
 і два її рядки в базі видалені міграцією `AddInsightScopeAndDropSector` (рядки — до
 дропу колонки, інакше вони лишились би в архіві невідрізнимі від справжніх прогонів).
-Портфельний генератор — наступний крок; ринкові кнопки (Україна/світ) поки не існують
-навіть як ендпоінт, свідомо: попередня заглушка писала справжні рядки в базу, і саме
-це протекло у фід.
+Портфельний і ринкові скоупи (розділи вище) з'явилися вже поверх цього — окремими
+ендпоінтами, не заглушками: попередня секторальна заглушка писала справжні рядки в базу,
+і саме це протекло у фід.
 
 **Кольори карток фактів:** категорія — текстовий чіп **без** відтінку. Це не
 недогляд: 7-слотова категоріальна палітра провалює валідатор `dataviz` на цьому
@@ -390,7 +440,9 @@ docker compose up --build
    `AnthropicAnalysisRunner` + `PortfolioAnalysisRequest`)~~ ✅
 10. ~~Ринкові аналізи (Україна/світ) окремими скоупами на тому самому
     пайплайні~~ ✅
-11. **Наступне:** CRUD транзакцій (buy/sell/dividend —
-   сутність є, форм нема); CSV-імпорт з брокерів/банків; статус «продано» з
-   фінальною сумою (видалення без втрати історії вже є — м'яке); нагадування
-   про оновлення оцінки неліквідних активів
+11. ~~CRUD транзакцій; кількість одиниць — похідна від них, колонка
+    `Holding.Quantity` дропнута міграцією з переносом даних~~ ✅
+12. **Наступне:** CSV-імпорт з брокерів/банків (тепер є куди імпортувати —
+   транзакції); статус «продано» з фінальною сумою (видалення без втрати історії
+   вже є — м'яке); нагадування про оновлення оцінки неліквідних активів;
+   собівартість і P&L з транзакцій (дані для цього вже лежать)
