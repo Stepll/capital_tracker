@@ -28,6 +28,7 @@ internal record PortfolioContext(
         var holdings = await db.Holdings.ToListAsync(cancellationToken);
         var accounts = await db.Accounts.ToDictionaryAsync(a => a.Id, cancellationToken);
         var snapshots = await db.ValuationSnapshots.ToListAsync(cancellationToken);
+        var positions = HoldingPositions.ByHolding(await db.Transactions.ToListAsync(cancellationToken));
         var holdingInsights = await db.AiInsights
             .Where(i => i.Scope == InsightScope.Holding)
             .ToListAsync(cancellationToken);
@@ -57,7 +58,7 @@ internal record PortfolioContext(
                     value,
                     currency,
                     converter.Convert(value, currency, user.DisplayCurrency),
-                    h.Quantity,
+                    positions.TryGetValue(h.Id, out var units) ? units : null,
                     insightsByHolding[h.Id]
                         .OrderByDescending(i => i.GeneratedAt)
                         .FirstOrDefault()

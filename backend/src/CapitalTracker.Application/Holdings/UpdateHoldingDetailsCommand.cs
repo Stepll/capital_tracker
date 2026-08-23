@@ -19,7 +19,6 @@ namespace CapitalTracker.Application.Holdings;
 /// </summary>
 public record UpdateHoldingDetailsCommand(
     Guid HoldingId,
-    decimal? Quantity,
     string? Notes,
     Dictionary<string, string>? Attributes,
     Dictionary<string, string>? SecretAttributes,
@@ -32,7 +31,6 @@ public class UpdateHoldingDetailsCommandHandler(IApplicationDbContext db, IEncry
     {
         var holding = await db.Holdings.SingleAsync(h => h.Id == request.HoldingId, cancellationToken);
 
-        holding.Quantity = request.Quantity;
         holding.Notes = request.Notes;
 
         if (request.Attributes is not null)

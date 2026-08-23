@@ -34,9 +34,16 @@ public class HoldingPriceSyncService(
             .Where(v => v.Date == today)
             .ToListAsync(cancellationToken);
 
+        // Quantities live in the transactions now, so the whole table is folded once here
+        // rather than per holding. Holdings missing from the dictionary have no unit-bearing
+        // transaction at all, which reads as "units unknown" — never as zero.
+        var positions = HoldingPositions.ByHolding(await db.Transactions.ToListAsync(cancellationToken));
+        decimal? Position(Holding holding) =>
+            positions.TryGetValue(holding.Id, out var units) ? units : null;
+
         var eligible = holdings
             .Where(h => accounts.ContainsKey(h.AccountId)
-                && MarketPricing.CanAutoPrice(h.Symbol, accounts[h.AccountId].Type, h.Quantity))
+                && MarketPricing.CanAutoPrice(h.Symbol, accounts[h.AccountId].Type, Position(h)))
             .ToList();
 
         var priced = 0;
@@ -77,7 +84,7 @@ public class HoldingPriceSyncService(
             foreach (var holding in targets)
             {
                 // Rounded to the column's scale so the tracked entity matches what's stored.
-                var value = Math.Round(quote.Price * holding.Quantity!.Value, 2);
+                var value = Math.Round(quote.Price * Position(holding)!.Value, 2);
                 var existing = todaysSnapshots.SingleOrDefault(v => v.HoldingId == holding.Id);
 
                 if (existing is not null)

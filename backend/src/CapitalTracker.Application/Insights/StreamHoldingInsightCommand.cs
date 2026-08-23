@@ -1,3 +1,4 @@
+using CapitalTracker.Application.Common;
 using CapitalTracker.Application.Common.Interfaces;
 using CapitalTracker.Domain.Entities;
 using CapitalTracker.Domain.Enums;
@@ -98,6 +99,10 @@ public class StreamHoldingInsightCommandHandler(
             .OrderBy(v => v.Date)
             .LastOrDefault();
 
+        var quantity = HoldingPositions.Of(await db.Transactions
+            .Where(t => t.HoldingId == holding.Id)
+            .ToListAsync(cancellationToken));
+
         // Only the most recent analysis: enough to tell new findings from repeats,
         // without spending tokens on history the model would have to reconcile.
         var previous = (await db.AiInsights
@@ -112,7 +117,7 @@ public class StreamHoldingInsightCommandHandler(
             account.Type,
             account.Name,
             sectorName,
-            holding.Quantity,
+            quantity,
             latest?.Currency ?? account.Currency,
             latest?.Value ?? 0m,
             holding.Notes,

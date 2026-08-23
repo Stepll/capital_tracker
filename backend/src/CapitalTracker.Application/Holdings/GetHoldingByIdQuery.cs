@@ -40,6 +40,12 @@ public class GetHoldingByIdQueryHandler(IApplicationDbContext db, IOptions<Insig
             .OrderBy(v => v.Date)
             .ToList();
 
+        // Units held, folded from the transactions — the holding carries no quantity of
+        // its own any more, so this is what the header and PricingMode below read.
+        var quantity = HoldingPositions.Of(await db.Transactions
+            .Where(t => t.HoldingId == holding.Id)
+            .ToListAsync(cancellationToken));
+
         var latest = snapshots.LastOrDefault();
         var currency = latest?.Currency ?? account.Currency;
 
@@ -66,7 +72,7 @@ public class GetHoldingByIdQueryHandler(IApplicationDbContext db, IOptions<Insig
             account.Type,
             holding.Name,
             holding.Symbol,
-            holding.Quantity,
+            quantity,
             holding.Notes,
             currency,
             latest?.Value ?? 0m,
@@ -79,7 +85,7 @@ public class GetHoldingByIdQueryHandler(IApplicationDbContext db, IOptions<Insig
             holding.Attributes,
             holding.SecretAttributes.Keys.ToList(),
             MarketPricing.CanQuote(holding.Symbol, account.Type)
-                ? MarketPricing.CanAutoPrice(holding.Symbol, account.Type, holding.Quantity)
+                ? MarketPricing.CanAutoPrice(holding.Symbol, account.Type, quantity)
                     ? PricingMode.Automatic
                     : PricingMode.NeedsQuantity
                 : PricingMode.Manual,

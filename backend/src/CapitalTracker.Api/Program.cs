@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json.Serialization;
 using Anthropic;
+using CapitalTracker.Api.Filters;
 using CapitalTracker.Application.Auth;
 using CapitalTracker.Application.Common.Interfaces;
 using CapitalTracker.Application.Insights;
@@ -18,7 +19,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers()
+builder.Services.AddControllers(options => options.Filters.Add<DomainValidationExceptionFilter>())
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

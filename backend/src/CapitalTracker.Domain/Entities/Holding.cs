@@ -15,8 +15,10 @@ public class Holding
     /// <summary>Ticker symbol for market-traded assets; null for e.g. real estate.</summary>
     public string? Symbol { get; set; }
 
-    /// <summary>Units held (shares, coins, etc.) — optional; not every asset is unit-based.</summary>
-    public decimal? Quantity { get; set; }
+    // No Quantity here: units are whatever the holding's Buy/Sell/Deposit/Withdrawal
+    // transactions add up to (see HoldingPositions). A stored copy would be a second
+    // source of truth needing a synchronisation rule, and the one that used to live here
+    // drifted from the transactions it was supposed to summarise.
 
     public string? Notes { get; set; }
 

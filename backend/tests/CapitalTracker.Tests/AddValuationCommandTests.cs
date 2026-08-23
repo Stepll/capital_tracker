@@ -1,3 +1,4 @@
+using CapitalTracker.Application.Common;
 using CapitalTracker.Application.Common.Interfaces;
 using CapitalTracker.Application.Holdings;
 using CapitalTracker.Application.Insights;
@@ -84,7 +85,9 @@ public class AddValuationCommandTests
         await using var db = TestDbContext.Create();
         var (holding, date) = await SeedAsync(db, accountCurrency: "UAH", snapshotCurrency: "UAH");
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        // DomainValidationException, not a bare throw: the message is what the form shows,
+        // so it has to reach the client as a 400 rather than a 500.
+        await Assert.ThrowsAsync<DomainValidationException>(
             () => SendAsync(db, new AddValuationCommand(holding.Id, 100m, date, "GBP")));
     }
 

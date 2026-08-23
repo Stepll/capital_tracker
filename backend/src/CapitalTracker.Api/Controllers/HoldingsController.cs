@@ -10,7 +10,6 @@ public record CreateHoldingRequest(string Name, string? Symbol, decimal? Quantit
 public record AddValuationRequest(decimal Value, DateOnly? Date, string? Currency);
 public record AssignSectorRequest(Guid? SectorId);
 public record UpdateHoldingDetailsRequest(
-    decimal? Quantity,
     string? Notes,
     Dictionary<string, string>? Attributes,
     Dictionary<string, string>? SecretAttributes,
@@ -42,7 +41,7 @@ public class HoldingsController(ISender sender) : ControllerBase
     [HttpPut("holdings/{id:guid}/details")]
     public async Task<ActionResult<HoldingDetailDto>> UpdateDetails(Guid id, UpdateHoldingDetailsRequest request) =>
         Ok(await sender.Send(new UpdateHoldingDetailsCommand(
-            id, request.Quantity, request.Notes, request.Attributes, request.SecretAttributes,
+            id, request.Notes, request.Attributes, request.SecretAttributes,
             request.ExcludeFromAiAnalysis)));
 
     [HttpGet("holdings/{id:guid}/secrets/{key}")]

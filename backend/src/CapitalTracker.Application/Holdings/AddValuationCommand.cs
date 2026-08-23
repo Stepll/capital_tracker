@@ -27,7 +27,7 @@ public class AddValuationCommandHandler(IApplicationDbContext db, ISender sender
     public async Task<HoldingDetailDto> Handle(AddValuationCommand request, CancellationToken cancellationToken)
     {
         if (request.Currency is not null && !SupportedCurrencies.All.Contains(request.Currency))
-            throw new InvalidOperationException($"Unsupported currency: {request.Currency}");
+            throw new DomainValidationException($"Валюта {request.Currency} не підтримується.");
 
         var holding = await db.Holdings.SingleAsync(h => h.Id == request.HoldingId, cancellationToken);
         var account = await db.Accounts.SingleAsync(a => a.Id == holding.AccountId, cancellationToken);
@@ -54,9 +54,7 @@ public class AddValuationCommandHandler(IApplicationDbContext db, ISender sender
         }
         else
         {
-            var currency = request.Currency
-                ?? snapshots.OrderByDescending(v => v.Date).FirstOrDefault()?.Currency
-                ?? account.Currency;
+            var currency = request.Currency ?? HoldingDenomination.Of(snapshots, account);
 
             db.ValuationSnapshots.Add(new ValuationSnapshot
             {

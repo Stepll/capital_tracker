@@ -18,7 +18,7 @@ public class ValuationSnapshotConfiguration : IEntityTypeConfiguration<Valuation
 
         builder.Property(v => v.Currency).HasMaxLength(3);
 
-        // Money, so fixed precision — matches ExchangeRate.RateToUah and Holding.Quantity,
+        // Money, so fixed precision — matches ExchangeRate.RateToUah and Transaction.UnitPrice,
         // both of which already declare theirs. Also keeps the stored value identical to
         // what the price job rounds to before saving.
         builder.Property(v => v.Value).HasPrecision(18, 2);
