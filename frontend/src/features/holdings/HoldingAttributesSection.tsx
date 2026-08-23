@@ -26,7 +26,6 @@ export function HoldingAttributesSection({ holding, readOnly = false }: Props) {
   const secretTemplate = SECRET_ATTRIBUTE_TEMPLATES[holding.accountType];
   const templateKeys = template.map((f) => f.key);
 
-  const [quantity, setQuantity] = useState(holding.quantity?.toString() ?? "");
   const [notes, setNotes] = useState(holding.notes ?? "");
   const [attrValues, setAttrValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(template.map((f) => [f.key, holding.attributes[f.key] ?? ""])),
@@ -55,7 +54,6 @@ export function HoldingAttributesSection({ holding, readOnly = false }: Props) {
     }
 
     await updateDetails.mutateAsync({
-      quantity: quantity ? Number(quantity) : null,
       notes: notes.trim() || null,
       attributes,
       secretAttributes: Object.keys(secretAttributes).length > 0 ? secretAttributes : undefined,
@@ -74,23 +72,6 @@ export function HoldingAttributesSection({ holding, readOnly = false }: Props) {
       {/* A disabled fieldset switches off every control inside it in one go — cheaper and
           harder to get wrong than threading `disabled` through each input. */}
       <fieldset className={styles.fieldset} disabled={readOnly}>
-
-      <label className={styles.field}>
-        <span>Кількість одиниць</span>
-        <input
-          type="number"
-          min="0"
-          step="any"
-          placeholder="напр. 10 (акцій), 0.5 (BTC)"
-          value={quantity}
-          onChange={(e) => setQuantity(e.target.value)}
-        />
-        {holding.pricingMode === "NeedsQuantity" && (
-          <em className={styles.fieldHint}>
-            Вкажіть кількість — тоді вартість оновлюватиметься щодня автоматично.
-          </em>
-        )}
-      </label>
 
       {template.map((f) => (
         <label key={f.key} className={styles.field}>

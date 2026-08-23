@@ -62,6 +62,10 @@ export function AddHoldingModal({ accountId, currency, onClose }: Props) {
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
           />
+          <em className={styles.hint}>
+            Запишемо це початковою транзакцією купівлі — далі кількість змінюється тільки
+            через транзакції. Її можна відредагувати на сторінці активу.
+          </em>
         </label>
 
         <label className={styles.field}>

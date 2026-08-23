@@ -3,6 +3,10 @@ import { Link, useParams } from "react-router-dom";
 import { useHoldingDetail, useAddValuation } from "./useHoldingDetail";
 import { HoldingAttributesSection } from "./HoldingAttributesSection";
 import { HoldingInsightsPanel } from "./HoldingInsightsPanel";
+import { TransactionList } from "../transactions/TransactionList";
+import { TransactionFormModal } from "../transactions/TransactionFormModal";
+import { useDeleteTransaction, useHoldingTransactions } from "../transactions/useTransactions";
+import type { Transaction } from "../transactions/types";
 import { ValueOverTimeChart } from "../../shared/ui/ValueOverTimeChart";
 import chartStyles from "../../shared/ui/Charts.module.css";
 import { CURRENCIES } from "../../shared/currencies";
@@ -15,7 +19,12 @@ const deletedFormatter = new Intl.DateTimeFormat("uk-UA", { day: "2-digit", mont
 export function HoldingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: holding, isLoading } = useHoldingDetail(id);
+  const { data: transactions = [] } = useHoldingTransactions(id);
   const addValuation = useAddValuation(id!);
+  const deleteTransaction = useDeleteTransaction();
+  // Null means closed; an object means open — with a transaction to edit, or without one
+  // to add. A plain boolean couldn't tell "add" from "edit" apart.
+  const [transactionForm, setTransactionForm] = useState<{ transaction?: Transaction } | null>(null);
   const [newValue, setNewValue] = useState("");
   const [valuationDate, setValuationDate] = useState(todayIso());
   // Null means "whatever the holding is already denominated in" — resolved at render,
@@ -130,11 +139,35 @@ export function HoldingDetailPage() {
               {holding.pricingMode === "Automatic"
                 ? "Вартість оновлюється щодня автоматично за ринковою ціною. Введене вручну значення закріпить цей день і не буде перезаписане."
                 : holding.pricingMode === "NeedsQuantity"
-                  ? "Щоб вартість оновлювалася автоматично, вкажіть кількість одиниць у деталях активу нижче."
+                  ? "Щоб вартість оновлювалася автоматично, додайте транзакцію купівлі нижче — кількість береться з них."
                   : "Значення на вже наявну дату замінить попереднє — зручно виправити помилку."}
             </p>
           </section>
           )}
+
+          <section className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>Транзакції</h2>
+              {!isDeleted && (
+                <button className={styles.linkButton} onClick={() => setTransactionForm({})}>
+                  + Додати транзакцію
+                </button>
+              )}
+            </div>
+
+            <TransactionList
+              transactions={transactions}
+              onEdit={isDeleted ? undefined : (transaction) => setTransactionForm({ transaction })}
+              onDelete={isDeleted ? undefined : (transaction) => deleteTransaction.mutate(transaction.id)}
+              emptyMessage="Транзакцій ще немає. Купівлі й продажі тут — єдине джерело кількості одиниць."
+            />
+
+            <p className={styles.hint}>
+              {holding.pricingMode === "NeedsQuantity"
+                ? "Кількість рахується з цих транзакцій. Додайте купівлю — і вартість оновлюватиметься щодня автоматично."
+                : "Кількість одиниць рахується з цих транзакцій, окремого поля для неї немає."}
+            </p>
+          </section>
 
           <HoldingAttributesSection key={holding.id} holding={holding} readOnly={isDeleted} />
         </div>
@@ -143,6 +176,18 @@ export function HoldingDetailPage() {
           <HoldingInsightsPanel holding={holding} readOnly={isDeleted} />
         </div>
       </div>
+
+      {transactionForm && (
+        // Keyed by the row being edited so reopening on a different transaction remounts
+        // the form instead of keeping the previous one's values in state.
+        <TransactionFormModal
+          key={transactionForm.transaction?.id ?? "new"}
+          holdingId={holding.id}
+          currency={holding.currency}
+          transaction={transactionForm.transaction}
+          onClose={() => setTransactionForm(null)}
+        />
+      )}
     </div>
   );
 }

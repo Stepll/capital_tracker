@@ -91,3 +91,12 @@
   flex-direction: column;
   gap: 8px;
 }
+
+/* This page's sections are bare lists of cards; the transaction stream needs a surface
+   of its own to sit on, matching the panels on the holding page. */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 6px 20px;
+}

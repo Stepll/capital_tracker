@@ -89,3 +89,29 @@
   opacity: 0.6;
   cursor: default;
 }
+
+/* Two fields on one line — quantity next to its unit price, where they read as one number. */
+.fieldRow {
+  display: flex;
+  gap: 10px;
+}
+
+.fieldRow > .field {
+  flex: 1;
+  min-width: 0;
+}
+
+.hint {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--text-faint);
+  line-height: 1.45;
+}
+
+/* For a rejection the owner can act on ("не можна продати більше, ніж є"), which the
+   server sends as a 400 with the sentence to show. */
+.error {
+  font-size: 13px;
+  color: var(--danger);
+  line-height: 1.45;
+}

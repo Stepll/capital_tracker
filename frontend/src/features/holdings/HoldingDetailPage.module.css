@@ -402,3 +402,11 @@
   padding: 0;
   border: 0;
 }
+
+/* A section title with an action next to it — the transactions list adds rows from here. */
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}

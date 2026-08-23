@@ -5,11 +5,14 @@ import { ACCOUNT_TYPE_LABELS } from "./types";
 import { HoldingRow } from "../holdings/HoldingRow";
 import { AddHoldingModal } from "../holdings/AddHoldingModal";
 import { useDeleteHolding } from "../holdings/useHoldings";
+import { TransactionList } from "../transactions/TransactionList";
+import { useAccountTransactions } from "../transactions/useTransactions";
 import styles from "./AccountDetailPage.module.css";
 
 export function AccountDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: account, isLoading } = useAccountDetail(id);
+  const { data: transactions = [] } = useAccountTransactions(id);
   const deleteHolding = useDeleteHolding(id!);
   const [isModalOpen, setModalOpen] = useState(false);
 
@@ -57,6 +60,22 @@ export function AccountDetailPage() {
               onDelete={(hId) => deleteHolding.mutate(hId)}
             />
           ))}
+        </div>
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>Транзакції</h2>
+        </div>
+        {/* Read-only here on purpose: a transaction belongs to one asset, and editing it
+            where the asset is only a label invites putting units on the wrong holding.
+            The name is a link to the page that can. */}
+        <div className={styles.card}>
+          <TransactionList
+            transactions={transactions}
+            showHolding
+            emptyMessage="Транзакцій у цьому рахунку ще немає."
+          />
         </div>
       </section>
 

@@ -14,6 +14,7 @@ export interface HoldingDetail {
   accountType: AccountType;
   name: string;
   symbol: string | null;
+  /** Folded from the holding's transactions; null when nothing has ever moved units. */
   quantity: number | null;
   notes: string | null;
   currency: string;
@@ -61,7 +62,6 @@ export function useAddValuation(holdingId: string) {
 }
 
 export interface UpdateHoldingDetailsInput {
-  quantity: number | null;
   notes: string | null;
   attributes?: Record<string, string>;
   secretAttributes?: Record<string, string>;
