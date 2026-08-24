@@ -1,7 +1,7 @@
 .page {
-  max-width: 480px;
+  max-width: var(--page-width);
   margin: 0 auto;
-  padding: 40px 20px 80px;
+  padding: var(--page-padding);
   display: flex;
   flex-direction: column;
   gap: 28px;
@@ -13,20 +13,18 @@
   gap: 10px;
 }
 
-.back {
-  color: var(--text-dim);
-  font-size: 13px;
-  text-decoration: none;
-  width: fit-content;
-}
-
-.back:hover {
-  color: var(--text);
-}
-
 .title {
   font-size: 24px;
   font-weight: 700;
+}
+
+/* Side by side in the shared page box, stacking when it narrows — one card alone in a
+   1160px page is mostly empty. */
+.sections {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+  align-items: start;
 }
 
 .section {

@@ -1,7 +1,7 @@
 .page {
-  max-width: 640px;
+  max-width: var(--page-width);
   margin: 0 auto;
-  padding: 40px 20px 80px;
+  padding: var(--page-padding);
   display: flex;
   flex-direction: column;
   gap: 28px;
@@ -11,18 +11,6 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-}
-
-.back {
-  color: var(--text-dim);
-  font-size: 13px;
-  text-decoration: none;
-  width: fit-content;
-  margin-bottom: 10px;
-}
-
-.back:hover {
-  color: var(--text);
 }
 
 .title {
@@ -81,9 +69,11 @@
   font-size: 13px;
 }
 
+/* Wider than the account cards: these hold a summary sentence, and a card narrower than
+   this one puts three words on a line. */
 .list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
   gap: 10px;
 }
 

@@ -11,6 +11,15 @@
   --danger: #ff5c5c;
   --success: #35d07f;
 
+  /* Every content page is laid out in this box, so moving between them doesn't shift
+     the content sideways. It is the width the holding page's two-column layout needs
+     (1fr + a 380px panel); the other pages fill it with grids that reflow. */
+  --page-width: 1160px;
+  /* Less at the top than the sides suggest: the pinned bar already separates the page
+     from the top of the window. */
+  --page-padding: 24px 20px 80px;
+  --appbar-height: 56px;
+
   --sans: -apple-system, "Inter", "Segoe UI", Roboto, sans-serif;
   --radius-lg: 20px;
   --radius-md: 14px;

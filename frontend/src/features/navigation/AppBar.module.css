@@ -1,0 +1,127 @@
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Same box as the pages below it, so the back arrow lines up with their content edge. */
+.inner {
+  max-width: var(--page-width);
+  margin: 0 auto;
+  padding: 0 20px;
+  height: var(--appbar-height);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.back,
+.backPlaceholder {
+  flex-shrink: 0;
+  /* The button is a 32px hit target but the arrow inside it is small: pulled left so the
+     glyph sits on the same vertical line as the page content, not 8px inside it. */
+  margin-left: -8px;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: var(--text-dim);
+  font-size: 16px;
+}
+
+.back:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* Holds the arrow's place on the dashboard so the trail starts at the same x everywhere. */
+.backPlaceholder {
+  pointer-events: none;
+}
+
+.trail {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  /* The tail of a long path matters more than its head, so it scrolls rather than
+     truncating the page you are actually on. */
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.trail::-webkit-scrollbar {
+  display: none;
+}
+
+.crumbWrap {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.separator {
+  color: var(--text-faint);
+  padding: 0 8px;
+  font-size: 13px;
+}
+
+.crumb,
+.crumbCurrent {
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.crumb {
+  color: var(--text-dim);
+  text-decoration: none;
+}
+
+.crumb:hover {
+  color: var(--text);
+}
+
+.crumbCurrent {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.action {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 13px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.action:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+@media (max-width: 640px) {
+  .actions {
+    gap: 0;
+  }
+
+  .action {
+    padding: 8px;
+  }
+}

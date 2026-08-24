@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useHoldingDetail, useAddValuation } from "./useHoldingDetail";
 import { HoldingAttributesSection } from "./HoldingAttributesSection";
 import { HoldingInsightsPanel } from "./HoldingInsightsPanel";
@@ -52,9 +52,6 @@ export function HoldingDetailPage() {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <Link to={`/accounts/${holding.accountId}`} className={styles.back}>
-          ← {holding.accountName}
-        </Link>
         <h1 className={styles.name}>{holding.name}</h1>
         {holding.symbol && (
           <p className={styles.symbol}>
@@ -81,101 +78,95 @@ export function HoldingDetailPage() {
         </div>
       </header>
 
-      <div className={styles.contentGrid}>
-        <div className={styles.leftColumn}>
-          <section className={chartStyles.card}>
-            <h2 className={chartStyles.cardTitle}>Динаміка вартості</h2>
-            <ValueOverTimeChart
-              data={holding.valuationHistory}
-              currency={holding.currency}
-              emptyMessage="Онови вартість активу пізніше, щоб побачити динаміку."
-            />
-          </section>
+      <section className={chartStyles.card}>
+        <h2 className={chartStyles.cardTitle}>Динаміка вартості</h2>
+        <ValueOverTimeChart
+          data={holding.valuationHistory}
+          currency={holding.currency}
+          emptyMessage="Онови вартість активу пізніше, щоб побачити динаміку."
+        />
+      </section>
 
+      {!isDeleted && (
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Оновити вартість</h2>
+          <div className={styles.updateRow}>
+            <input
+              type="date"
+              className={styles.dateInput}
+              value={valuationDate}
+              max={todayIso()}
+              onChange={(e) => setValuationDate(e.target.value)}
+              aria-label="Дата оцінки"
+            />
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder={`Нова вартість, ${currency}`}
+              value={newValue}
+              onChange={(e) => setNewValue(e.target.value)}
+            />
+            {/* An asset can be denominated differently from its account — a USD stock
+                in a UAH brokerage account — so the currency is explicit rather than
+                inherited, and defaults to the one the holding already uses. */}
+            <select
+              className={styles.currencySelect}
+              value={currency}
+              onChange={(e) => setValuationCurrency(e.target.value)}
+              aria-label="Валюта оцінки"
+            >
+              {CURRENCIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            <button
+              className={styles.primaryButton}
+              onClick={handleAddValuation}
+              disabled={!newValue || addValuation.isPending}
+            >
+              {addValuation.isPending ? "Зберігаємо…" : "Зберегти"}
+            </button>
+          </div>
+          <p className={styles.hint}>
+            {holding.pricingMode === "Automatic"
+              ? "Вартість оновлюється щодня автоматично за ринковою ціною. Введене вручну значення закріпить цей день і не буде перезаписане."
+              : holding.pricingMode === "NeedsQuantity"
+                ? "Щоб вартість оновлювалася автоматично, додайте транзакцію купівлі нижче — кількість береться з них."
+                : "Значення на вже наявну дату замінить попереднє — зручно виправити помилку."}
+          </p>
+        </section>
+      )}
+
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>Транзакції</h2>
           {!isDeleted && (
-          <section className={styles.section}>
-            <h2 className={styles.sectionTitle}>Оновити вартість</h2>
-            <div className={styles.updateRow}>
-              <input
-                type="date"
-                className={styles.dateInput}
-                value={valuationDate}
-                max={todayIso()}
-                onChange={(e) => setValuationDate(e.target.value)}
-                aria-label="Дата оцінки"
-              />
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder={`Нова вартість, ${currency}`}
-                value={newValue}
-                onChange={(e) => setNewValue(e.target.value)}
-              />
-              {/* An asset can be denominated differently from its account — a USD stock
-                  in a UAH brokerage account — so the currency is explicit rather than
-                  inherited, and defaults to the one the holding already uses. */}
-              <select
-                className={styles.currencySelect}
-                value={currency}
-                onChange={(e) => setValuationCurrency(e.target.value)}
-                aria-label="Валюта оцінки"
-              >
-                {CURRENCIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-              <button
-                className={styles.primaryButton}
-                onClick={handleAddValuation}
-                disabled={!newValue || addValuation.isPending}
-              >
-                {addValuation.isPending ? "Зберігаємо…" : "Зберегти"}
-              </button>
-            </div>
-            <p className={styles.hint}>
-              {holding.pricingMode === "Automatic"
-                ? "Вартість оновлюється щодня автоматично за ринковою ціною. Введене вручну значення закріпить цей день і не буде перезаписане."
-                : holding.pricingMode === "NeedsQuantity"
-                  ? "Щоб вартість оновлювалася автоматично, додайте транзакцію купівлі нижче — кількість береться з них."
-                  : "Значення на вже наявну дату замінить попереднє — зручно виправити помилку."}
-            </p>
-          </section>
+            <button className={styles.linkButton} onClick={() => setTransactionForm({})}>
+              + Додати транзакцію
+            </button>
           )}
-
-          <section className={styles.section}>
-            <div className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>Транзакції</h2>
-              {!isDeleted && (
-                <button className={styles.linkButton} onClick={() => setTransactionForm({})}>
-                  + Додати транзакцію
-                </button>
-              )}
-            </div>
-
-            <TransactionList
-              transactions={transactions}
-              onEdit={isDeleted ? undefined : (transaction) => setTransactionForm({ transaction })}
-              onDelete={isDeleted ? undefined : (transaction) => deleteTransaction.mutate(transaction.id)}
-              emptyMessage="Транзакцій ще немає. Купівлі й продажі тут — єдине джерело кількості одиниць."
-            />
-
-            <p className={styles.hint}>
-              {holding.pricingMode === "NeedsQuantity"
-                ? "Кількість рахується з цих транзакцій. Додайте купівлю — і вартість оновлюватиметься щодня автоматично."
-                : "Кількість одиниць рахується з цих транзакцій, окремого поля для неї немає."}
-            </p>
-          </section>
-
-          <HoldingAttributesSection key={holding.id} holding={holding} readOnly={isDeleted} />
         </div>
 
-        <div className={styles.rightColumn}>
-          <HoldingInsightsPanel holding={holding} readOnly={isDeleted} />
-        </div>
-      </div>
+        <TransactionList
+          transactions={transactions}
+          onEdit={isDeleted ? undefined : (transaction) => setTransactionForm({ transaction })}
+          onDelete={isDeleted ? undefined : (transaction) => deleteTransaction.mutate(transaction.id)}
+          emptyMessage="Транзакцій ще немає. Купівлі й продажі тут — єдине джерело кількості одиниць."
+        />
+
+        <p className={styles.hint}>
+          {holding.pricingMode === "NeedsQuantity"
+            ? "Кількість рахується з цих транзакцій. Додайте купівлю — і вартість оновлюватиметься щодня автоматично."
+            : "Кількість одиниць рахується з цих транзакцій, окремого поля для неї немає."}
+        </p>
+      </section>
+
+      <HoldingAttributesSection key={holding.id} holding={holding} readOnly={isDeleted} />
+
+      <HoldingInsightsPanel holding={holding} readOnly={isDeleted} />
 
       {transactionForm && (
         // Keyed by the row being edited so reopening on a different transaction remounts

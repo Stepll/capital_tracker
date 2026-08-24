@@ -1,12 +1,10 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { useAccounts, useDeleteAccount } from "../accounts/useAccounts";
 import { AccountCard } from "../accounts/AccountCard";
 import { AddAccountModal } from "../accounts/AddAccountModal";
 import { useDashboardSummary } from "./useDashboardSummary";
 import { AllocationChart } from "./AllocationChart";
 import { ValueOverTimeChart } from "../../shared/ui/ValueOverTimeChart";
-import { useAuth } from "../../shared/auth/AuthContext";
 import styles from "./DashboardPage.module.css";
 import chartStyles from "../../shared/ui/Charts.module.css";
 
@@ -16,7 +14,6 @@ export function DashboardPage() {
   const { data: accounts, isLoading } = useAccounts();
   const { data: summary } = useDashboardSummary();
   const deleteAccount = useDeleteAccount();
-  const { logout } = useAuth();
   const [isModalOpen, setModalOpen] = useState(false);
 
   const currencySymbol = summary ? CURRENCY_SYMBOLS[summary.currency] ?? summary.currency : "";
@@ -30,17 +27,6 @@ export function DashboardPage() {
           <h1 className={styles.total}>
             {totalLabel} {currencySymbol}
           </h1>
-        </div>
-        <div className={styles.headerActions}>
-          <Link to="/insights" className={styles.settingsLink}>
-            AI-аналітика
-          </Link>
-          <Link to="/settings" className={styles.settingsLink}>
-            Налаштування
-          </Link>
-          <button className={styles.logout} onClick={logout}>
-            Вийти
-          </button>
         </div>
       </header>
 

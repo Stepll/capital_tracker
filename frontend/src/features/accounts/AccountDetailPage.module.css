@@ -1,7 +1,7 @@
 .page {
-  max-width: 720px;
+  max-width: var(--page-width);
   margin: 0 auto;
-  padding: 40px 20px 80px;
+  padding: var(--page-padding);
   display: flex;
   flex-direction: column;
   gap: 32px;
@@ -11,18 +11,6 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-}
-
-.back {
-  color: var(--text-dim);
-  font-size: 13px;
-  text-decoration: none;
-  width: fit-content;
-  margin-bottom: 10px;
-}
-
-.back:hover {
-  color: var(--text);
 }
 
 .name {
@@ -86,9 +74,10 @@
   color: var(--text-dim);
 }
 
+/* Same reflow as the dashboard's account grid, for the same reason. */
 .list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 8px;
 }
 

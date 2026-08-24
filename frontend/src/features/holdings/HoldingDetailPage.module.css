@@ -1,58 +1,16 @@
 .page {
-  max-width: 1160px;
+  max-width: var(--page-width);
   margin: 0 auto;
-  padding: 40px 20px 80px;
+  padding: var(--page-padding);
   display: flex;
   flex-direction: column;
   gap: 24px;
-}
-
-/* Row 2: left column (chart, valuation, details) + right column (AI panel) */
-.contentGrid {
-  display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: 20px;
-  align-items: start;
-}
-
-.leftColumn {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  min-width: 0;
-}
-
-.rightColumn {
-  position: sticky;
-  top: 24px;
-}
-
-@media (max-width: 900px) {
-  .contentGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .rightColumn {
-    position: static;
-  }
 }
 
 .header {
   display: flex;
   flex-direction: column;
   gap: 4px;
-}
-
-.back {
-  color: var(--text-dim);
-  font-size: 13px;
-  text-decoration: none;
-  width: fit-content;
-  margin-bottom: 10px;
-}
-
-.back:hover {
-  color: var(--text);
 }
 
 .name {
@@ -394,13 +352,17 @@
   font-size: 0.85rem;
 }
 
-/* Carries no styling of its own — it exists only so `disabled` can switch off every
-   control inside at once. */
+/* Exists so `disabled` can switch off every control inside at once. It also has to carry
+   the column layout: wrapping the fields in it made them children of the fieldset rather
+   than of .section, which silently took away the gap they used to inherit. */
 .fieldset {
   min-width: 0;
   margin: 0;
   padding: 0;
   border: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 /* A section title with an action next to it — the transactions list adds rows from here. */
@@ -409,4 +371,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+/* Sized by its label, not by the column: the fieldset stretches its children by default,
+   and a save button as wide as the form reads as the page's primary action, which it is not. */
+.fieldset .primaryButton {
+  align-self: flex-start;
 }

@@ -127,9 +127,6 @@ export function InsightsPage() {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <Link to="/" className={styles.back}>
-          ← Дашборд
-        </Link>
         <h1 className={styles.title}>AI-аналітика</h1>
         <p className={styles.subtitle}>
           Аналіз портфеля цілком, огляд ринків і архів усіх запусків. Аналізи видалених активів

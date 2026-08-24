@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./shared/auth/AuthContext";
 import { ProtectedRoute } from "./shared/auth/ProtectedRoute";
+import { AppLayout } from "./features/navigation/AppLayout";
 import { LoginPage } from "./features/auth/LoginPage";
 import { DashboardPage } from "./features/dashboard/DashboardPage";
 import { SettingsPage } from "./features/settings/SettingsPage";
@@ -14,46 +15,23 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+
+          {/* One guard and one chrome for everything behind the login: the pinned bar
+              carries the breadcrumbs, the back arrow and the links out, so no page
+              renders its own. Login stays outside — it has nowhere to navigate to. */}
           <Route
-            path="/"
             element={
               <ProtectedRoute>
-                <DashboardPage />
+                <AppLayout />
               </ProtectedRoute>
             }
-          />
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute>
-                <SettingsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/accounts/:id"
-            element={
-              <ProtectedRoute>
-                <AccountDetailPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/holdings/:id"
-            element={
-              <ProtectedRoute>
-                <HoldingDetailPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/insights"
-            element={
-              <ProtectedRoute>
-                <InsightsPage />
-              </ProtectedRoute>
-            }
-          />
+          >
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/accounts/:id" element={<AccountDetailPage />} />
+            <Route path="/holdings/:id" element={<HoldingDetailPage />} />
+            <Route path="/insights" element={<InsightsPage />} />
+          </Route>
         </Routes>
       </BrowserRouter>
     </AuthProvider>
