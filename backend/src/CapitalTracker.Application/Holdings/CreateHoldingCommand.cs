@@ -74,6 +74,7 @@ public class CreateHoldingCommandHandler(IApplicationDbContext db)
 
         return new HoldingDto(
             holding.Id, holding.AccountId, holding.Name, holding.Symbol,
-            account.Currency, request.InitialValue, holding.CreatedAt);
+            account.Currency, request.InitialValue, holding.CreatedAt, today,
+            new ValuationAgeDto(today, 0, ValuationStatus.Fresh));
     }
 }

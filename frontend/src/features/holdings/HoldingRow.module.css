@@ -44,6 +44,8 @@
 .value {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  /* The badge under the name can push this into wrapping mid-number otherwise. */
+  white-space: nowrap;
 }
 
 .delete {
@@ -61,5 +63,24 @@
 }
 
 .delete:hover {
+  color: var(--danger);
+}
+
+.stale,
+.staleAlert {
+  font-size: 11px;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stale {
+  color: var(--text-faint);
+}
+
+/* Colour reinforces the glyph and the sentence beside it; it never carries the meaning
+   on its own. */
+.staleAlert {
   color: var(--danger);
 }

@@ -4,6 +4,7 @@ import { AccountCard } from "../accounts/AccountCard";
 import { AddAccountModal } from "../accounts/AddAccountModal";
 import { useDashboardSummary } from "./useDashboardSummary";
 import { AllocationChart } from "./AllocationChart";
+import { StaleValuationsNotice } from "./StaleValuationsNotice";
 import { ValueOverTimeChart } from "../../shared/ui/ValueOverTimeChart";
 import styles from "./DashboardPage.module.css";
 import chartStyles from "../../shared/ui/Charts.module.css";
@@ -29,6 +30,10 @@ export function DashboardPage() {
           </h1>
         </div>
       </header>
+
+      {summary && (
+        <StaleValuationsNotice stale={summary.staleValuations} totalNetWorth={summary.totalNetWorth} />
+      )}
 
       {summary && summary.allocationByType.length > 0 && (
         <div className={chartStyles.card}>

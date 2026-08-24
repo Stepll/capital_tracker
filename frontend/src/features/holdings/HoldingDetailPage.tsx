@@ -8,6 +8,7 @@ import { TransactionFormModal } from "../transactions/TransactionFormModal";
 import { useDeleteTransaction, useHoldingTransactions } from "../transactions/useTransactions";
 import type { Transaction } from "../transactions/types";
 import { ValueOverTimeChart } from "../../shared/ui/ValueOverTimeChart";
+import { staleGlyph, staleMessage } from "../../shared/ui/valuationAge";
 import chartStyles from "../../shared/ui/Charts.module.css";
 import { CURRENCIES } from "../../shared/currencies";
 import styles from "./HoldingDetailPage.module.css";
@@ -76,6 +77,15 @@ export function HoldingDetailPage() {
             </span>
           )}
         </div>
+        {staleMessage(holding.valuationAge) && (
+          <p
+            className={
+              holding.valuationAge.status === "AutoPricingStalled" ? styles.staleAlert : styles.stale
+            }
+          >
+            {staleGlyph(holding.valuationAge)} {staleMessage(holding.valuationAge)}
+          </p>
+        )}
       </header>
 
       <section className={chartStyles.card}>

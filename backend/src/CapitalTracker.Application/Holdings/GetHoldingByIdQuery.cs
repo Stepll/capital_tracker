@@ -46,6 +46,7 @@ public class GetHoldingByIdQueryHandler(IApplicationDbContext db, IOptions<Insig
             .Where(t => t.HoldingId == holding.Id)
             .ToListAsync(cancellationToken));
 
+        var pricingMode = MarketPricing.ModeFor(holding.Symbol, account.Type, quantity);
         var latest = snapshots.LastOrDefault();
         var currency = latest?.Currency ?? account.Currency;
 
@@ -84,13 +85,11 @@ public class GetHoldingByIdQueryHandler(IApplicationDbContext db, IOptions<Insig
                 .ToList(),
             holding.Attributes,
             holding.SecretAttributes.Keys.ToList(),
-            MarketPricing.CanQuote(holding.Symbol, account.Type)
-                ? MarketPricing.CanAutoPrice(holding.Symbol, account.Type, quantity)
-                    ? PricingMode.Automatic
-                    : PricingMode.NeedsQuantity
-                : PricingMode.Manual,
+            pricingMode,
             holding.ExcludeFromAiAnalysis,
             nextAnalysisAvailableAt,
-            holding.DeletedAt);
+            holding.DeletedAt,
+            ValuationFreshness.Age(
+                latest?.Date, account.Type, pricingMode, DateOnly.FromDateTime(DateTime.UtcNow)));
     }
 }

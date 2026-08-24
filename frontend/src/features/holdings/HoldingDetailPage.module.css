@@ -378,3 +378,17 @@
 .fieldset .primaryButton {
   align-self: flex-start;
 }
+
+.stale,
+.staleAlert {
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+.stale {
+  color: var(--text-faint);
+}
+
+.staleAlert {
+  color: var(--danger);
+}

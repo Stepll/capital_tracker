@@ -57,6 +57,33 @@ public class GetDashboardSummaryQueryHandler(IApplicationDbContext db)
 
         var total = allocation.Sum(a => a.Value);
 
+        // The total above is only as true as the numbers it adds up, so it comes with a
+        // list of the ones that have gone stale. Positions are needed to tell an asset the
+        // price job should be handling from one only the owner can update — the difference
+        // decides which of two very different sentences the dashboard shows.
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var positions = HoldingPositions.ByHolding(await db.Transactions.ToListAsync(cancellationToken));
+
+        var stale = holdings
+            .Where(h => accountById.ContainsKey(h.AccountId))
+            .Select(h =>
+            {
+                var account = accountById[h.AccountId];
+                var snapshot = snapshotsByHolding[h.Id].OrderByDescending(s => s.Date).FirstOrDefault();
+                var mode = MarketPricing.ModeFor(
+                    h.Symbol, account.Type, positions.TryGetValue(h.Id, out var units) ? units : null);
+
+                return new StaleValuationDto(
+                    h.Id,
+                    h.Name,
+                    account.Name,
+                    ValuationFreshness.Age(snapshot?.Date, account.Type, mode, today),
+                    snapshot is null ? 0m : ToDisplay(snapshot.Value, snapshot.Currency));
+            })
+            .Where(s => s.ValuationAge.Status != ValuationStatus.Fresh)
+            .OrderByDescending(s => s.ValueInDisplayCurrency)
+            .ToList();
+
         // Sparse and step-shaped until valuations are updated more regularly — an honest
         // reflection of what's actually tracked. The account page draws its own series
         // from the same builder.
@@ -64,6 +91,6 @@ public class GetDashboardSummaryQueryHandler(IApplicationDbContext db)
             .Select(p => new NetWorthPointDto(p.Date, p.Value))
             .ToList();
 
-        return new DashboardSummaryDto(total, displayCurrency, allocation, history);
+        return new DashboardSummaryDto(total, displayCurrency, allocation, history, stale);
     }
 }

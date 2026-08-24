@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../shared/api/client";
 import type { AccountType } from "../accounts/types";
+import type { ValuationAge } from "../../shared/ui/valuationAge";
 
 export interface ValuationPoint {
   date: string;
@@ -32,6 +33,8 @@ export interface HoldingDetail {
   nextAnalysisAvailableAt: string | null;
   /** Set once deleted. The page still opens — read-only — so links to it keep working. */
   deletedAt: string | null;
+  /** How out of date `currentValue` is, and whose job it is to fix that. */
+  valuationAge: ValuationAge;
 }
 
 export function useHoldingDetail(id: string | undefined) {

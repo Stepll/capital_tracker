@@ -1,3 +1,5 @@
+using CapitalTracker.Application.Common;
+
 namespace CapitalTracker.Application.Holdings;
 
 public record HoldingDto(
@@ -7,4 +9,9 @@ public record HoldingDto(
     string? Symbol,
     string Currency,
     decimal CurrentValue,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    DateOnly? LastValuedOn,
+    // Left null by the EF projection, which knows nothing about the account type or the
+    // holding's position: HoldingQueries.WithValuationAge fills it in memory afterwards,
+    // and both callers of the projection go through it so neither can forget.
+    ValuationAgeDto? ValuationAge = null);

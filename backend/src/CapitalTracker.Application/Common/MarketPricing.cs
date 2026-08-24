@@ -1,3 +1,4 @@
+using CapitalTracker.Application.Holdings;
 using CapitalTracker.Domain.Enums;
 
 namespace CapitalTracker.Application.Common;
@@ -21,4 +22,15 @@ public static class MarketPricing
     /// </summary>
     public static bool CanAutoPrice(string? symbol, AccountType accountType, decimal? quantity) =>
         CanQuote(symbol, accountType) && quantity is > 0m;
+
+    /// <summary>
+    /// The same three-way answer the holding page shows, in one place — the staleness rule
+    /// needs it too, and two copies would eventually disagree about what NeedsQuantity is.
+    /// </summary>
+    public static PricingMode ModeFor(string? symbol, AccountType accountType, decimal? quantity) =>
+        CanQuote(symbol, accountType)
+            ? CanAutoPrice(symbol, accountType, quantity)
+                ? PricingMode.Automatic
+                : PricingMode.NeedsQuantity
+            : PricingMode.Manual;
 }

@@ -1,3 +1,4 @@
+using CapitalTracker.Application.Common;
 using CapitalTracker.Domain.Enums;
 
 namespace CapitalTracker.Application.Holdings;
@@ -32,4 +33,7 @@ public record HoldingDetailDto(
     // soft-delete filter, so the page still opens — links to it have to keep working —
     // and renders read-only. Every other handler reads the filtered set, where a deleted
     // holding simply isn't there.
-    DateTime? DeletedAt);
+    DateTime? DeletedAt,
+    // How out of date the value above is, and whether the owner or the price job is the
+    // one who has to do something about it.
+    ValuationAgeDto ValuationAge);
