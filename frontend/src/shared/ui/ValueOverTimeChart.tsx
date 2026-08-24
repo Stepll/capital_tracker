@@ -66,6 +66,7 @@ export function ValueOverTimeChart({ data, currency, emptyMessage }: Props) {
           dataKey="value"
           stroke="var(--accent)"
           strokeWidth={2}
+          isAnimationActive={false}
           dot={{ r: 3, fill: "var(--accent)", strokeWidth: 0 }}
           activeDot={{ r: 5 }}
         />
