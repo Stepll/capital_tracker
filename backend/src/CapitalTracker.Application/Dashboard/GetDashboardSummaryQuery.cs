@@ -36,9 +36,6 @@ public class GetDashboardSummaryQueryHandler(IApplicationDbContext db)
         var allHoldings = await db.Holdings.IgnoreQueryFilters().ToListAsync(cancellationToken);
         var holdings = allHoldings.Where(h => h.DeletedAt is null).ToList();
 
-        static bool HeldOn(Holding holding, DateOnly date) =>
-            holding.DeletedAt is null || date < DateOnly.FromDateTime(holding.DeletedAt.Value);
-
         var accountById = accounts.ToDictionary(a => a.Id);
         var snapshotsByHolding = snapshots.ToLookup(s => s.HoldingId);
 
@@ -60,34 +57,12 @@ public class GetDashboardSummaryQueryHandler(IApplicationDbContext db)
 
         var total = allocation.Sum(a => a.Value);
 
-        // History: for every date any snapshot was recorded, the portfolio's
-        // total value "as of" that date (last known value per holding at or
-        // before it). Sparse and step-shaped until valuations are updated
-        // more regularly — an honest reflection of what's actually tracked.
-        //
-        // Today is always a point, even with no snapshot dated today, so the line ends
-        // where the headline total does instead of stopping at the last recorded date
-        // and disagreeing with it by whatever the rate has done since.
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var allDates = snapshots.Select(s => s.Date).Append(today).Distinct().OrderBy(d => d).ToList();
-        var history = allDates.Select(date =>
-        {
-            var asOfTotal = allHoldings.Where(h => HeldOn(h, date)).Sum(h =>
-            {
-                var asOf = snapshotsByHolding[h.Id]
-                    .Where(s => s.Date <= date)
-                    .OrderByDescending(s => s.Date)
-                    .FirstOrDefault();
-                // Converted at that day's rate, not today's — the value is what the
-                // portfolio was worth then, and pricing it at the current rate would
-                // redraw the whole line every time the hryvnia moves, turning a currency
-                // slide into apparent growth. The rate belongs to the point on the chart,
-                // not to the snapshot: a valuation carried forward for three months is
-                // still being asked "what was that worth on this date".
-                return asOf is null ? 0 : converter.ConvertAsOf(asOf.Value, asOf.Currency, displayCurrency, date);
-            });
-            return new NetWorthPointDto(date, asOfTotal);
-        }).ToList();
+        // Sparse and step-shaped until valuations are updated more regularly — an honest
+        // reflection of what's actually tracked. The account page draws its own series
+        // from the same builder.
+        var history = ValuationHistory.Build(allHoldings, snapshots, converter, displayCurrency)
+            .Select(p => new NetWorthPointDto(p.Date, p.Value))
+            .ToList();
 
         return new DashboardSummaryDto(total, displayCurrency, allocation, history);
     }
