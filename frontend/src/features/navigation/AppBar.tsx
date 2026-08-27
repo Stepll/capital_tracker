@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { Link, useMatch } from "react-router-dom";
+import { downloadFile } from "../../shared/api/download";
 import { useAccountDetail } from "../accounts/useAccountDetail";
 import { useHoldingDetail } from "../holdings/useHoldingDetail";
 import { useAuth } from "../../shared/auth/AuthContext";
@@ -25,6 +27,7 @@ export function AppBar() {
   const insightsMatch = useMatch("/insights");
   const settingsMatch = useMatch("/settings");
   const { logout } = useAuth();
+  const [exportState, setExportState] = useState<"idle" | "busy" | "failed">("idle");
 
   // Both hooks run on every page; each is disabled unless its route matched.
   const { data: account } = useAccountDetail(accountMatch?.params.id);
@@ -53,6 +56,29 @@ export function AppBar() {
   // visibly points, and browser history can hold anything at all.
   const parent = [...trail].reverse().find((crumb) => crumb.to)?.to;
   const isRoot = trail.length === 1;
+
+  // The bar already works out what you are looking at for the trail, so the export button
+  // rides along on it: one control in one place that always means "this, as a file".
+  // Pages without a portfolio underneath them (settings, the analysis archive) get none.
+  const exportPath = accountMatch
+    ? `/accounts/${accountMatch.params.id}/export`
+    : holdingMatch
+      ? `/holdings/${holdingMatch.params.id}/export`
+      : insightsMatch || settingsMatch
+        ? null
+        : "/export";
+
+  const handleExport = async () => {
+    if (exportPath === null) return;
+    setExportState("busy");
+    try {
+      await downloadFile(exportPath, "capital-tracker.csv");
+      setExportState("idle");
+    } catch {
+      // No toast system here, so the button itself says it — better than a silent no-op.
+      setExportState("failed");
+    }
+  };
 
   return (
     <header className={styles.bar}>
@@ -83,6 +109,11 @@ export function AppBar() {
         </nav>
 
         <div className={styles.actions}>
+          {exportPath !== null && (
+            <button className={styles.action} onClick={handleExport} disabled={exportState === "busy"}>
+              {exportState === "busy" ? "Готуємо…" : exportState === "failed" ? "Не вдалось" : "Експорт"}
+            </button>
+          )}
           <Link to="/insights" className={styles.action}>
             AI-аналітика
           </Link>
