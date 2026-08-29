@@ -59,6 +59,12 @@ public class Holding
     /// </summary>
     public DateTime? DeletedAt { get; set; }
 
+    /// <summary>
+    /// Set when an import created this holding, so undoing that import can take it away
+    /// again — but only if nothing has been added to it since.
+    /// </summary>
+    public Guid? ImportBatchId { get; set; }
+
     public List<Transaction> Transactions { get; set; } = [];
     public List<ValuationSnapshot> ValuationSnapshots { get; set; } = [];
 }

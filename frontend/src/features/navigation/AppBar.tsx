@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link, useMatch } from "react-router-dom";
 import { downloadFile } from "../../shared/api/download";
+import { ImportModal } from "../transfer/ImportModal";
+import type { TransferScope } from "../transfer/types";
 import { useAccountDetail } from "../accounts/useAccountDetail";
 import { useHoldingDetail } from "../holdings/useHoldingDetail";
 import { useAuth } from "../../shared/auth/AuthContext";
@@ -28,6 +30,7 @@ export function AppBar() {
   const settingsMatch = useMatch("/settings");
   const { logout } = useAuth();
   const [exportState, setExportState] = useState<"idle" | "busy" | "failed">("idle");
+  const [isImportOpen, setImportOpen] = useState(false);
 
   // Both hooks run on every page; each is disabled unless its route matched.
   const { data: account } = useAccountDetail(accountMatch?.params.id);
@@ -60,6 +63,17 @@ export function AppBar() {
   // The bar already works out what you are looking at for the trail, so the export button
   // rides along on it: one control in one place that always means "this, as a file".
   // Pages without a portfolio underneath them (settings, the analysis archive) get none.
+  // Export and import are the same two halves of one format, so they share the scope the
+  // bar already resolved and sit next to each other.
+  const scope: TransferScope | null = accountMatch
+    ? "Account"
+    : holdingMatch
+      ? "Holding"
+      : insightsMatch || settingsMatch
+        ? null
+        : "Portfolio";
+  const targetId = accountMatch?.params.id ?? holdingMatch?.params.id;
+
   const exportPath = accountMatch
     ? `/accounts/${accountMatch.params.id}/export`
     : holdingMatch
@@ -114,6 +128,11 @@ export function AppBar() {
               {exportState === "busy" ? "Готуємо…" : exportState === "failed" ? "Не вдалось" : "Експорт"}
             </button>
           )}
+          {scope !== null && (
+            <button className={styles.action} onClick={() => setImportOpen(true)}>
+              Імпорт
+            </button>
+          )}
           <Link to="/insights" className={styles.action}>
             AI-аналітика
           </Link>
@@ -125,6 +144,10 @@ export function AppBar() {
           </button>
         </div>
       </div>
+
+      {isImportOpen && scope !== null && (
+        <ImportModal scope={scope} targetId={targetId} onClose={() => setImportOpen(false)} />
+      )}
     </header>
   );
 }

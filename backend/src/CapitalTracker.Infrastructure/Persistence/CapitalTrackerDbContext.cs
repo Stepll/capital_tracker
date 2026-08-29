@@ -11,6 +11,7 @@ public class CapitalTrackerDbContext(DbContextOptions<CapitalTrackerDbContext> o
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<Holding> Holdings => Set<Holding>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
+    public DbSet<ImportBatch> ImportBatches => Set<ImportBatch>();
     public DbSet<ValuationSnapshot> ValuationSnapshots => Set<ValuationSnapshot>();
     public DbSet<Sector> Sectors => Set<Sector>();
     public DbSet<AiInsight> AiInsights => Set<AiInsight>();

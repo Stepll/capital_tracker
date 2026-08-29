@@ -29,4 +29,7 @@ public class Transaction
     public decimal UnitPrice { get; set; }
     public string Currency { get; set; } = "USD";
     public string? Notes { get; set; }
+
+    /// <summary>Which import brought this row in, if any. Null for anything entered by hand.</summary>
+    public Guid? ImportBatchId { get; set; }
 }

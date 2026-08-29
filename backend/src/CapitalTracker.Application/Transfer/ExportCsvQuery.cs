@@ -1,16 +1,10 @@
 using CapitalTracker.Application.Common.Interfaces;
 using CapitalTracker.Domain.Entities;
+using CapitalTracker.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace CapitalTracker.Application.Transfer;
-
-public enum ExportScope
-{
-    Portfolio,
-    Account,
-    Holding,
-}
 
 public record CsvFileDto(string FileName, string Content);
 
@@ -18,7 +12,7 @@ public record CsvFileDto(string FileName, string Content);
 /// The whole portfolio, one account, or one holding — the same rows either way, only the
 /// set of holdings differs. <c>TargetId</c> is null for the portfolio scope.
 /// </summary>
-public record ExportCsvQuery(ExportScope Scope, Guid? TargetId = null) : IRequest<CsvFileDto?>;
+public record ExportCsvQuery(TransferScope Scope, Guid? TargetId = null) : IRequest<CsvFileDto?>;
 
 public class ExportCsvQueryHandler(IApplicationDbContext db)
     : IRequestHandler<ExportCsvQuery, CsvFileDto?>
@@ -32,8 +26,8 @@ public class ExportCsvQueryHandler(IApplicationDbContext db)
 
         holdingsQuery = request.Scope switch
         {
-            ExportScope.Account => holdingsQuery.Where(h => h.AccountId == request.TargetId),
-            ExportScope.Holding => holdingsQuery.Where(h => h.Id == request.TargetId),
+            TransferScope.Account => holdingsQuery.Where(h => h.AccountId == request.TargetId),
+            TransferScope.Holding => holdingsQuery.Where(h => h.Id == request.TargetId),
             _ => holdingsQuery,
         };
 
@@ -41,7 +35,7 @@ public class ExportCsvQueryHandler(IApplicationDbContext db)
 
         // A target that doesn't exist is a 404, not an empty file — an empty CSV would look
         // like a successful backup of nothing.
-        if (request.Scope != ExportScope.Portfolio && holdings.Count == 0)
+        if (request.Scope != TransferScope.Portfolio && holdings.Count == 0)
             return null;
 
         var accountIds = holdings.Select(h => h.AccountId).Distinct().ToList();
@@ -70,8 +64,8 @@ public class ExportCsvQueryHandler(IApplicationDbContext db)
 
         var name = request.Scope switch
         {
-            ExportScope.Account => accounts.Values.First().Name,
-            ExportScope.Holding => holdings[0].Name,
+            TransferScope.Account => accounts.Values.First().Name,
+            TransferScope.Holding => holdings[0].Name,
             _ => "портфель",
         };
 

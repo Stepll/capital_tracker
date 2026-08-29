@@ -22,5 +22,8 @@ public class Account
     /// </summary>
     public DateTime? DeletedAt { get; set; }
 
+    /// <summary>Set when an import created this account — see Holding.ImportBatchId.</summary>
+    public Guid? ImportBatchId { get; set; }
+
     public List<Holding> Holdings { get; set; } = [];
 }

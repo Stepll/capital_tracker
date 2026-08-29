@@ -19,7 +19,7 @@ public class ExportCsvQueryTests
         AddTransaction(db, holding, TransactionType.Sell, Today.AddDays(-2), 2m, 262m);
         await db.SaveChangesAsync(default);
 
-        var lines = await ExportLinesAsync(db, ExportScope.Portfolio);
+        var lines = await ExportLinesAsync(db, TransferScope.Portfolio);
 
         // Same day: what the owner did, then what it was worth.
         Assert.Equal("Купівля", Column(lines[1], "Подія"));
@@ -35,7 +35,7 @@ public class ExportCsvQueryTests
         AddTransaction(db, AddHolding(db, account, "Apple", "AAPL"), TransactionType.Buy, Today, 10m, 230m);
         await db.SaveChangesAsync(default);
 
-        var row = (await ExportLinesAsync(db, ExportScope.Portfolio))[1];
+        var row = (await ExportLinesAsync(db, TransferScope.Portfolio))[1];
 
         // Decimal commas, to match the semicolon separator — see PortfolioCsv.
         Assert.Equal("10", Column(row, "Кількість"));
@@ -52,7 +52,7 @@ public class ExportCsvQueryTests
         AddSnapshot(db, AddHolding(db, account, "Квартира", null), Today, 81_400m);
         await db.SaveChangesAsync(default);
 
-        var row = (await ExportLinesAsync(db, ExportScope.Portfolio))[1];
+        var row = (await ExportLinesAsync(db, TransferScope.Portfolio))[1];
 
         Assert.Equal("Оцінка", Column(row, "Подія"));
         Assert.Equal("", Column(row, "Кількість"));
@@ -72,7 +72,7 @@ public class ExportCsvQueryTests
         AddSnapshot(db, holding, Today.AddDays(-5), 1000m);
         await db.SaveChangesAsync(default);
 
-        var lines = await ExportLinesAsync(db, ExportScope.Portfolio);
+        var lines = await ExportLinesAsync(db, TransferScope.Portfolio);
 
         Assert.Equal("Оцінка", Column(lines[1], "Подія"));
         Assert.Equal("Видалення", Column(lines[2], "Подія"));
@@ -90,7 +90,7 @@ public class ExportCsvQueryTests
         AddSnapshot(db, holding, Today, 100m);
         await db.SaveChangesAsync(default);
 
-        var file = await RunAsync(db, ExportScope.Portfolio);
+        var file = await RunAsync(db, TransferScope.Portfolio);
 
         Assert.DoesNotContain("ciphertext-that-must-not-appear", file!.Content);
         Assert.DoesNotContain("Логін", file.Content);
@@ -105,7 +105,7 @@ public class ExportCsvQueryTests
         AddTransaction(db, holding, TransactionType.Buy, Today, 1m, 10m, "куплено; частинами");
         await db.SaveChangesAsync(default);
 
-        var file = await RunAsync(db, ExportScope.Portfolio);
+        var file = await RunAsync(db, TransferScope.Portfolio);
 
         Assert.Contains("\"куплено; частинами\"", file!.Content);
     }
@@ -120,7 +120,7 @@ public class ExportCsvQueryTests
         AddSnapshot(db, AddHolding(db, bank, "Депозит", null), Today, 5000m);
         await db.SaveChangesAsync(default);
 
-        var lines = await ExportLinesAsync(db, ExportScope.Account, broker.Id);
+        var lines = await ExportLinesAsync(db, TransferScope.Account, broker.Id);
 
         Assert.Equal("Apple", Column(Assert.Single(lines.Skip(1)), "Актив"));
     }
@@ -130,13 +130,13 @@ public class ExportCsvQueryTests
     {
         await using var db = TestDbContext.Create();
 
-        Assert.Null(await RunAsync(db, ExportScope.Holding, Guid.NewGuid()));
+        Assert.Null(await RunAsync(db, TransferScope.Holding, Guid.NewGuid()));
     }
 
-    private static Task<CsvFileDto?> RunAsync(TestDbContext db, ExportScope scope, Guid? target = null) =>
+    private static Task<CsvFileDto?> RunAsync(TestDbContext db, TransferScope scope, Guid? target = null) =>
         new ExportCsvQueryHandler(db).Handle(new ExportCsvQuery(scope, target), default);
 
-    private static async Task<string[]> ExportLinesAsync(TestDbContext db, ExportScope scope, Guid? target = null)
+    private static async Task<string[]> ExportLinesAsync(TestDbContext db, TransferScope scope, Guid? target = null)
     {
         var file = await RunAsync(db, scope, target);
         return file!.Content.Split('\n', StringSplitOptions.RemoveEmptyEntries);

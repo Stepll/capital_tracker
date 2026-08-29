@@ -14,4 +14,7 @@ public class ValuationSnapshot
     public decimal Value { get; set; }
     public string Currency { get; set; } = "USD";
     public bool IsManual { get; set; }
+
+    /// <summary>Which import last wrote this row, if any.</summary>
+    public Guid? ImportBatchId { get; set; }
 }

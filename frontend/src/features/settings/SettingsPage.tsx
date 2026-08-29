@@ -1,10 +1,20 @@
 import { useLatestExchangeRates, useSettings, useUpdateDisplayCurrency } from "./useSettings";
+import { useImportBatches, useUndoImport } from "../transfer/useImport";
 import styles from "./SettingsPage.module.css";
+
+const importFormatter = new Intl.DateTimeFormat("uk-UA", {
+  day: "2-digit",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+});
 
 export function SettingsPage() {
   const { data: settings, isLoading } = useSettings();
   const { data: rates } = useLatestExchangeRates();
+  const { data: imports } = useImportBatches();
   const updateCurrency = useUpdateDisplayCurrency();
+  const undoImport = useUndoImport();
 
   return (
     <div className={styles.page}>
@@ -49,6 +59,40 @@ export function SettingsPage() {
                 <div key={r.currency} className={styles.rateRow}>
                   <span>1 {r.currency}</span>
                   <span>{r.rateToUah.toFixed(2)} UAH</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+        {imports && imports.length > 0 && (
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>Імпорти</h2>
+            {/* Undo has to stay reachable after the modal is closed, or it is only an undo
+                for the thirty seconds you happen to still be looking at it. */}
+            <p className={styles.hint}>
+              Кожен імпорт можна скасувати — він прибере рівно ті рядки, які додав.
+            </p>
+            <div className={styles.imports}>
+              {imports.map((batch) => (
+                <div key={batch.id} className={styles.importRow}>
+                  <div className={styles.importInfo}>
+                    <span className={styles.importName}>{batch.fileName}</span>
+                    <span className={styles.importMeta}>
+                      {importFormatter.format(new Date(batch.createdAt))} · +{batch.transactionsCreated} транз. · +
+                      {batch.valuationsWritten} оцін.
+                    </span>
+                  </div>
+                  {batch.undoneAt === null ? (
+                    <button
+                      className={styles.undo}
+                      onClick={() => undoImport.mutate(batch.id)}
+                      disabled={undoImport.isPending}
+                    >
+                      Скасувати
+                    </button>
+                  ) : (
+                    <span className={styles.importMeta}>скасовано</span>
+                  )}
                 </div>
               ))}
             </div>

@@ -26,6 +26,7 @@ public class TestDbContext(DbContextOptions<TestDbContext> options) : DbContext(
     public DbSet<Sector> Sectors => Set<Sector>();
     public DbSet<AiInsight> AiInsights => Set<AiInsight>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
+    public DbSet<ImportBatch> ImportBatches => Set<ImportBatch>();
 
     public static TestDbContext Create() =>
         new(new DbContextOptionsBuilder<TestDbContext>()

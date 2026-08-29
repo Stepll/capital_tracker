@@ -17,6 +17,7 @@ public interface IApplicationDbContext
     DbSet<Sector> Sectors { get; }
     DbSet<AiInsight> AiInsights { get; }
     DbSet<Transaction> Transactions { get; }
+    DbSet<ImportBatch> ImportBatches { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }
