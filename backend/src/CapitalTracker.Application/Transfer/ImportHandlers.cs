@@ -186,7 +186,8 @@ public class GetImportBatchesQueryHandler(IApplicationDbContext db)
         .ToList();
 }
 
-public class InspectImportQueryHandler : IRequestHandler<InspectImportQuery, FileInspectionDto>
+public class InspectImportQueryHandler(IApplicationDbContext db)
+    : IRequestHandler<InspectImportQuery, FileInspectionDto>
 {
     /// <summary>Enough of the file to recognise it by eye, and no more.</summary>
     private const int PreviewRows = 25;
@@ -196,16 +197,13 @@ public class InspectImportQueryHandler : IRequestHandler<InspectImportQuery, Fil
     /// </summary>
     private const int CategoryLimit = 12;
 
-    public Task<FileInspectionDto> Handle(InspectImportQuery request, CancellationToken cancellationToken)
+    public async Task<FileInspectionDto> Handle(InspectImportQuery request, CancellationToken cancellationToken)
     {
         if (!SourceFile.TryReadGrid(request.File.Content, out var grid, out var problem))
-            return Task.FromResult(new FileInspectionDto(request.File.FileName, [], 0, [], [], null, false, problem));
+            return new FileInspectionDto(request.File.FileName, [], 0, [], [], null, null, false, problem);
 
         if (SourceFile.LooksCanonical(grid))
-        {
-            return Task.FromResult(new FileInspectionDto(
-                request.File.FileName, [.. grid.Take(PreviewRows)], 0, [], [], null, true, null));
-        }
+            return new FileInspectionDto(request.File.FileName, [.. grid.Take(PreviewRows)], 0, [], [], null, null, true, null);
 
         var suggestion = GridMapper.Suggest(grid);
         var width = grid.Count == 0 ? 0 : grid.Max(r => r.Length);
@@ -227,14 +225,22 @@ public class InspectImportQueryHandler : IRequestHandler<InspectImportQuery, Fil
                 distinct[column] = values;
         }
 
-        return Task.FromResult(new FileInspectionDto(
+        // Recognised by its own header, so a statement from a source seen before needs no
+        // second explanation.
+        var signature = suggestion.HeaderRow < grid.Count ? HeaderSignature.Of(grid[suggestion.HeaderRow]) : "";
+        var matched = signature.Length == 0
+            ? null
+            : await db.ImportProfiles.SingleOrDefaultAsync(p => p.HeaderSignature == signature, cancellationToken);
+
+        return new FileInspectionDto(
             request.File.FileName,
             [.. grid.Take(PreviewRows)],
             suggestion.HeaderRow,
             suggestion.Columns,
             distinct,
             suggestion.HeaderRow < grid.Count ? GridMapper.FindBalanceColumn(grid[suggestion.HeaderRow]) : null,
+            matched is null ? null : new ImportProfileDto(matched.Id, matched.Name, matched.Mapping, matched.CreatedAt),
             false,
-            null));
+            null);
     }
 }

@@ -68,6 +68,9 @@ public record FileInspectionDto(
     // The running balance column, when the file has one — a bank statement is usually worth
     // reading as "what the account was worth each day" rather than as a hundred payments.
     int? BalanceColumn,
+    // A mapping saved earlier whose header matches this file: the format recognised itself,
+    // so there is nothing left to explain.
+    ImportProfileDto? MatchedProfile,
     bool LooksCanonical,
     string? Problem);
 

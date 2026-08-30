@@ -38,6 +38,12 @@ public class ImportRequest
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 }
 
+/// <summary>
+/// The header goes up raw and is normalised server-side, so the signature a profile is
+/// saved under can never drift from the one an incoming file is matched by.
+/// </summary>
+public record SaveProfileRequest(string Name, string Mapping, string[] Header);
+
 [ApiController]
 [Route("api")]
 public class TransferController(ISender sender) : ControllerBase
@@ -54,6 +60,21 @@ public class TransferController(ISender sender) : ControllerBase
     [HttpPost("import/inspect")]
     public async Task<ActionResult<FileInspectionDto>> Inspect([FromForm] ImportRequest request) =>
         Ok(await sender.Send(new InspectImportQuery(await ReadAsync(request))));
+
+    [HttpGet("import/profiles")]
+    public async Task<ActionResult<List<ImportProfileDto>>> GetProfiles() =>
+        Ok(await sender.Send(new GetImportProfilesQuery()));
+
+    [HttpPost("import/profiles")]
+    public async Task<ActionResult<ImportProfileDto>> SaveProfile(SaveProfileRequest request) =>
+        Ok(await sender.Send(new SaveImportProfileCommand(request.Name, request.Mapping, request.Header)));
+
+    [HttpDelete("import/profiles/{id:guid}")]
+    public async Task<IActionResult> DeleteProfile(Guid id)
+    {
+        var deleted = await sender.Send(new DeleteImportProfileCommand(id));
+        return deleted ? NoContent() : NotFound();
+    }
 
     [HttpPost("import/preview")]
     public Task<ActionResult<ImportPreviewDto>> PreviewPortfolio([FromForm] ImportRequest request) =>

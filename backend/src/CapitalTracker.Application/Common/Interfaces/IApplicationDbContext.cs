@@ -18,6 +18,7 @@ public interface IApplicationDbContext
     DbSet<AiInsight> AiInsights { get; }
     DbSet<Transaction> Transactions { get; }
     DbSet<ImportBatch> ImportBatches { get; }
+    DbSet<ImportProfile> ImportProfiles { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

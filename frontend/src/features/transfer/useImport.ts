@@ -5,6 +5,7 @@ import {
   type ColumnMapping,
   type FileInspection,
   type ImportBatch,
+  type ImportProfile,
   type ImportOptions,
   type ImportPreview,
   type ImportResult,
@@ -20,6 +21,36 @@ function body(file: File, options: ImportOptions, mapping?: ColumnMapping | null
   // A form field rather than a body, because the file it describes goes up as multipart.
   if (mapping) form.append("Mapping", JSON.stringify(mapping));
   return form;
+}
+
+export function useImportProfiles() {
+  return useQuery({
+    queryKey: ["import-profiles"],
+    queryFn: async () => (await apiClient.get<ImportProfile[]>("/import/profiles")).data,
+  });
+}
+
+export function useSaveImportProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { name: string; mapping: ColumnMapping; header: string[] }) =>
+      (
+        await apiClient.post<ImportProfile>("/import/profiles", {
+          name: input.name,
+          mapping: JSON.stringify(input.mapping),
+          header: input.header,
+        })
+      ).data,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["import-profiles"] }),
+  });
+}
+
+export function useDeleteImportProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiClient.delete(`/import/profiles/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["import-profiles"] }),
+  });
 }
 
 /** A first look at an unknown file, before anything is mapped or imported. */

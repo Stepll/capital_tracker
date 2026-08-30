@@ -2,7 +2,13 @@ import { useState, type ChangeEvent } from "react";
 import modal from "../../shared/ui/Modal.module.css";
 import styles from "./ImportModal.module.css";
 import { MappingStep } from "./MappingStep";
-import { useCommitImport, useInspectImport, usePreviewImport, useUndoImport } from "./useImport";
+import {
+  useCommitImport,
+  useInspectImport,
+  usePreviewImport,
+  useSaveImportProfile,
+  useUndoImport,
+} from "./useImport";
 import {
   DEFAULT_IMPORT_OPTIONS,
   type ColumnMapping,
@@ -41,8 +47,13 @@ export function ImportModal({ scope, targetId, onClose }: Props) {
   const [mapping, setMapping] = useState<ColumnMapping | null>(null);
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
+  // Set when the file recognised itself, so the preview can say so and the offer to save
+  // the mapping stays out of the way.
+  const [recognisedAs, setRecognisedAs] = useState<string | null>(null);
+  const [profileName, setProfileName] = useState("");
 
   const inspectImport = useInspectImport();
+  const saveProfile = useSaveImportProfile();
   const previewImport = usePreviewImport(scope, targetId);
   const commitImport = useCommitImport(scope, targetId);
   const undoImport = useUndoImport();
@@ -62,10 +73,28 @@ export function ImportModal({ scope, targetId, onClose }: Props) {
 
     const looked = await inspectImport.mutateAsync(chosen);
     setInspection(looked);
+    setRecognisedAs(looked.matchedProfile?.name ?? null);
+    setProfileName("");
 
     // Our own export goes straight to the diff; anything else stops to be explained first.
-    if (looked.looksCanonical) await refresh(chosen, options, null);
-    else if (looked.problem === null) setMapping(initialMapping(looked));
+    if (looked.looksCanonical) {
+      await refresh(chosen, options, null);
+      return;
+    }
+
+    if (looked.problem !== null) return;
+
+    if (looked.matchedProfile) {
+      // The header a profile was saved under is the one just found in this file, so the row
+      // it sits on is taken from this file rather than from the file the profile came from
+      // — a letterhead can change length between statements.
+      const saved = { ...(JSON.parse(looked.matchedProfile.mapping) as ColumnMapping), headerRow: looked.headerRow };
+      setMapping(saved);
+      await refresh(chosen, options, saved);
+      return;
+    }
+
+    setMapping(initialMapping(looked));
   };
 
   // Every option changes what would happen, so the preview is recomputed rather than
@@ -115,6 +144,10 @@ export function ImportModal({ scope, targetId, onClose }: Props) {
               <MappingStep inspection={inspection} mapping={mapping} onChange={setMapping} />
             )}
 
+            {recognisedAs !== null && (
+              <p className={modal.hint}>Формат розпізнано: «{recognisedAs}» — зіставлення підставлено.</p>
+            )}
+
             {preview && mapping && (
               // The diff is the first place a wrong column becomes obvious, so the way back
               // to the mapping has to be here rather than through re-picking the file.
@@ -124,6 +157,33 @@ export function ImportModal({ scope, targetId, onClose }: Props) {
             )}
 
             {preview && <Preview preview={preview} options={options} onToggle={toggle} />}
+
+            {/* Offered after the diff rather than beside the mapping form: this is the moment
+                the owner knows the mapping is right. */}
+            {preview && mapping && inspection && recognisedAs === null && (
+              <div className={styles.saveProfile}>
+                <input
+                  value={profileName}
+                  onChange={(e) => setProfileName(e.target.value)}
+                  placeholder="Назва формату, напр. «Монобанк»"
+                />
+                <button
+                  type="button"
+                  className={styles.saveProfileButton}
+                  disabled={profileName.trim().length === 0 || saveProfile.isPending}
+                  onClick={async () => {
+                    await saveProfile.mutateAsync({
+                      name: profileName,
+                      mapping,
+                      header: inspection.rows[mapping.headerRow] ?? [],
+                    });
+                    setRecognisedAs(profileName.trim());
+                  }}
+                >
+                  {saveProfile.isSuccess ? "Збережено" : "Запам'ятати зіставлення"}
+                </button>
+              </div>
+            )}
           </>
         )}
 

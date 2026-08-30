@@ -108,9 +108,13 @@ public static class ImportPlanner
         {
             if (string.IsNullOrWhiteSpace(group.Key.Account) || string.IsNullOrWhiteSpace(group.Key.Holding))
             {
+                // The message names the way out, because this is what a bank statement hits
+                // first: it carries no account or asset columns at all, and the fix is to
+                // import it from the page that already knows which asset it is about.
                 problems.Add(new ImportProblem(
                     group.First().Line,
-                    "Не вказано рахунок або актив — на цьому рівні імпорту вони обов'язкові."));
+                    "У файлі немає колонок «Рахунок» і «Актив». Познач їх у зіставленні — "
+                    + "або імпортуй зі сторінки рахунку чи активу, тоді вони беруться звідти."));
                 continue;
             }
 

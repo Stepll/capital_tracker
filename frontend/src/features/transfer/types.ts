@@ -84,9 +84,19 @@ export interface FileInspection {
   distinctValues: Record<string, string[]>;
   /** The running balance column, when the statement prints one. */
   balanceColumn: number | null;
+  /** A saved mapping whose header matches this file — the format recognised itself. */
+  matchedProfile: ImportProfile | null;
   /** Our own export coming back: no mapping to fill in. */
   looksCanonical: boolean;
   problem: string | null;
+}
+
+export interface ImportProfile {
+  id: string;
+  name: string;
+  /** The ColumnMapping as JSON, exactly as it was saved. */
+  mapping: string;
+  createdAt: string;
 }
 
 export interface EventMapping {

@@ -315,3 +315,39 @@
   font-weight: 600;
   padding: 0;
 }
+
+.saveProfile {
+  display: flex;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.saveProfile input {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  outline: none;
+}
+
+.saveProfile input:focus {
+  border-color: var(--accent);
+}
+
+.saveProfileButton {
+  flex-shrink: 0;
+  background: var(--accent-dim);
+  color: var(--accent);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.saveProfileButton:disabled {
+  opacity: 0.5;
+}

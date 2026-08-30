@@ -1,5 +1,5 @@
 import { useLatestExchangeRates, useSettings, useUpdateDisplayCurrency } from "./useSettings";
-import { useImportBatches, useUndoImport } from "../transfer/useImport";
+import { useDeleteImportProfile, useImportBatches, useImportProfiles, useUndoImport } from "../transfer/useImport";
 import styles from "./SettingsPage.module.css";
 
 const importFormatter = new Intl.DateTimeFormat("uk-UA", {
@@ -13,8 +13,10 @@ export function SettingsPage() {
   const { data: settings, isLoading } = useSettings();
   const { data: rates } = useLatestExchangeRates();
   const { data: imports } = useImportBatches();
+  const { data: profiles } = useImportProfiles();
   const updateCurrency = useUpdateDisplayCurrency();
   const undoImport = useUndoImport();
+  const deleteProfile = useDeleteImportProfile();
 
   return (
     <div className={styles.page}>
@@ -64,6 +66,30 @@ export function SettingsPage() {
             </div>
           </section>
         )}
+        {profiles && profiles.length > 0 && (
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>Збережені зіставлення</h2>
+            <p className={styles.hint}>
+              Виписка з такою самою шапкою впізнається сама — колонки не доведеться розкладати
+              вдруге.
+            </p>
+            <div className={styles.imports}>
+              {profiles.map((profile) => (
+                <div key={profile.id} className={styles.importRow}>
+                  <span className={styles.importName}>{profile.name}</span>
+                  <button
+                    className={styles.undo}
+                    onClick={() => deleteProfile.mutate(profile.id)}
+                    disabled={deleteProfile.isPending}
+                  >
+                    Забути
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {imports && imports.length > 0 && (
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Імпорти</h2>
