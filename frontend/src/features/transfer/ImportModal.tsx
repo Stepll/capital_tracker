@@ -1,9 +1,12 @@
 import { useState, type ChangeEvent } from "react";
 import modal from "../../shared/ui/Modal.module.css";
 import styles from "./ImportModal.module.css";
-import { useCommitImport, usePreviewImport, useUndoImport } from "./useImport";
+import { MappingStep } from "./MappingStep";
+import { useCommitImport, useInspectImport, usePreviewImport, useUndoImport } from "./useImport";
 import {
   DEFAULT_IMPORT_OPTIONS,
+  type ColumnMapping,
+  type FileInspection,
   type ImportOptions,
   type ImportPreview,
   type ImportPreviewHolding,
@@ -32,15 +35,20 @@ interface Props {
 export function ImportModal({ scope, targetId, onClose }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [options, setOptions] = useState<ImportOptions>(DEFAULT_IMPORT_OPTIONS);
+  const [inspection, setInspection] = useState<FileInspection | null>(null);
+  // Null while the file still speaks our own language; set once the owner has to say what
+  // a foreign statement's columns mean.
+  const [mapping, setMapping] = useState<ColumnMapping | null>(null);
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
 
+  const inspectImport = useInspectImport();
   const previewImport = usePreviewImport(scope, targetId);
   const commitImport = useCommitImport(scope, targetId);
   const undoImport = useUndoImport();
 
-  const refresh = async (nextFile: File, nextOptions: ImportOptions) => {
-    setPreview(await previewImport.mutateAsync({ file: nextFile, options: nextOptions }));
+  const refresh = async (nextFile: File, nextOptions: ImportOptions, nextMapping: ColumnMapping | null) => {
+    setPreview(await previewImport.mutateAsync({ file: nextFile, options: nextOptions, mapping: nextMapping }));
   };
 
   const handleFile = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -48,7 +56,16 @@ export function ImportModal({ scope, targetId, onClose }: Props) {
     setFile(chosen);
     setResult(null);
     setPreview(null);
-    if (chosen) await refresh(chosen, options);
+    setMapping(null);
+    setInspection(null);
+    if (!chosen) return;
+
+    const looked = await inspectImport.mutateAsync(chosen);
+    setInspection(looked);
+
+    // Our own export goes straight to the diff; anything else stops to be explained first.
+    if (looked.looksCanonical) await refresh(chosen, options, null);
+    else if (looked.problem === null) setMapping(initialMapping(looked));
   };
 
   // Every option changes what would happen, so the preview is recomputed rather than
@@ -56,12 +73,12 @@ export function ImportModal({ scope, targetId, onClose }: Props) {
   const toggle = async (key: keyof ImportOptions) => {
     const next = { ...options, [key]: !options[key] };
     setOptions(next);
-    if (file) await refresh(file, next);
+    if (file) await refresh(file, next, mapping);
   };
 
   const handleCommit = async () => {
     if (!file) return;
-    setResult(await commitImport.mutateAsync({ file, options }));
+    setResult(await commitImport.mutateAsync({ file, options, mapping }));
   };
 
   return (
@@ -76,15 +93,35 @@ export function ImportModal({ scope, targetId, onClose }: Props) {
         {result === null && (
           <>
             <label className={modal.field}>
-              <span>CSV-файл</span>
-              <input type="file" accept=".csv,text/csv" onChange={handleFile} />
+              <span>Файл CSV або Excel</span>
+              <input
+                type="file"
+                accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                onChange={handleFile}
+              />
               <em className={modal.hint}>
-                Той самий формат, який віддає «Експорт» — вивантаж, поправ у таблиці й залий назад.
-                Кодування UTF-8.
+                Файл із «Експорту» заходить як є. Виписку з банку чи брокера — .xlsx або CSV —
+                треба буде один раз пояснити по колонках.
               </em>
             </label>
 
-            {previewImport.isPending && <p className={modal.hint}>Читаємо файл…</p>}
+            {(previewImport.isPending || inspectImport.isPending) && (
+              <p className={modal.hint}>Читаємо файл…</p>
+            )}
+
+            {inspection?.problem && <p className={styles.warning}>⚠ {inspection.problem}</p>}
+
+            {inspection && mapping && preview === null && (
+              <MappingStep inspection={inspection} mapping={mapping} onChange={setMapping} />
+            )}
+
+            {preview && mapping && (
+              // The diff is the first place a wrong column becomes obvious, so the way back
+              // to the mapping has to be here rather than through re-picking the file.
+              <button type="button" className={styles.backToMapping} onClick={() => setPreview(null)}>
+                ← Змінити зіставлення колонок
+              </button>
+            )}
 
             {preview && <Preview preview={preview} options={options} onToggle={toggle} />}
           </>
@@ -96,12 +133,22 @@ export function ImportModal({ scope, targetId, onClose }: Props) {
           <button type="button" className={modal.cancel} onClick={onClose}>
             {result === null ? "Скасувати" : "Закрити"}
           </button>
-          {result === null && (
+          {result === null && preview === null && mapping !== null && (
+            <button
+              type="button"
+              className={modal.submit}
+              onClick={() => file && refresh(file, options, mapping)}
+              disabled={mapping.columns["Дата"] === undefined || previewImport.isPending}
+            >
+              Далі
+            </button>
+          )}
+          {result === null && preview !== null && (
             <button
               type="button"
               className={modal.submit}
               onClick={handleCommit}
-              disabled={!preview?.canCommit || commitImport.isPending}
+              disabled={!preview.canCommit || commitImport.isPending}
             >
               {commitImport.isPending ? "Імпортуємо…" : "Імпортувати"}
             </button>
@@ -110,6 +157,28 @@ export function ImportModal({ scope, targetId, onClose }: Props) {
       </form>
     </div>
   );
+}
+
+/**
+ * Starts the owner off with a direction rule that is actually filled in. An empty one would
+ * render as a form that looks answered while mapping every row to nothing — the import would
+ * report no rows and give no reason. Where the file has a column that reads like a type, that
+ * is used; otherwise the sign of the amount, which is how card statements say it.
+ */
+function initialMapping(inspection: FileInspection): ColumnMapping {
+  const header = inspection.rows[inspection.headerRow] ?? [];
+  const typeColumn = Object.keys(inspection.distinctValues)
+    .map(Number)
+    .find((index) => /вид операці|тип|type|side/i.test(header[index] ?? ""));
+
+  return {
+    headerRow: inspection.headerRow,
+    columns: inspection.columns,
+    event:
+      typeColumn === undefined
+        ? { whenPositive: "Внесення", whenNegative: "Виведення" }
+        : { column: typeColumn, values: {} },
+  };
 }
 
 function Preview({

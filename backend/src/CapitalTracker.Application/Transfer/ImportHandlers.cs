@@ -6,23 +6,29 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CapitalTracker.Application.Transfer;
 
+internal static class ImportGrid
+{
+    /// <summary>
+    /// A foreign file is rewritten into our columns first; our own export is already there.
+    /// Either way the parser downstream sees exactly one shape.
+    /// </summary>
+    public static List<string[]> Canonicalise(List<string[]> grid, ImportMapping? mapping) =>
+        mapping is null ? grid : GridMapper.ToCanonical(grid, mapping);
+}
+
 public class PreviewImportCommandHandler(IApplicationDbContext db)
     : IRequestHandler<PreviewImportCommand, ImportPreviewDto>
 {
     public async Task<ImportPreviewDto> Handle(PreviewImportCommand request, CancellationToken cancellationToken)
     {
-        if (!ImportMapping.TryDecode(request.File.Content, out var text))
-        {
-            return new ImportPreviewDto(
-                request.File.FileName,
-                [new ImportProblem(0, "Файл не у кодуванні UTF-8. Збережіть його як CSV UTF-8 і спробуйте ще раз.")],
-                [], [], null, false);
-        }
+        if (!SourceFile.TryReadGrid(request.File.Content, out var grid, out var problem))
+            return new ImportPreviewDto(request.File.FileName, [new ImportProblem(0, problem!)], [], [], null, false);
 
         var plan = await ImportPlanner.PlanAsync(
-            db, PortfolioCsvParser.Parse(text), request.Scope, request.TargetId, request.Options, cancellationToken);
+            db, PortfolioCsvParser.ParseGrid(ImportGrid.Canonicalise(grid, request.Mapping)),
+            request.Scope, request.TargetId, request.Options, cancellationToken);
 
-        var hash = ImportMapping.Sha256(request.File.Content);
+        var hash = ImportDtoMapping.Sha256(request.File.Content);
         var sameFile = (await db.ImportBatches.Where(b => b.FileHash == hash && b.UndoneAt == null)
                 .ToListAsync(cancellationToken))
             .OrderByDescending(b => b.CreatedAt)
@@ -42,11 +48,12 @@ public class CommitImportCommandHandler(IApplicationDbContext db)
 {
     public async Task<ImportResultDto> Handle(CommitImportCommand request, CancellationToken cancellationToken)
     {
-        if (!ImportMapping.TryDecode(request.File.Content, out var text))
-            throw new Common.DomainValidationException("Файл не у кодуванні UTF-8.");
+        if (!SourceFile.TryReadGrid(request.File.Content, out var grid, out var problem))
+            throw new Common.DomainValidationException(problem!);
 
         var plan = await ImportPlanner.PlanAsync(
-            db, PortfolioCsvParser.Parse(text), request.Scope, request.TargetId, request.Options, cancellationToken);
+            db, PortfolioCsvParser.ParseGrid(ImportGrid.Canonicalise(grid, request.Mapping)),
+            request.Scope, request.TargetId, request.Options, cancellationToken);
 
         var preview = plan.ToPreview(request.File.FileName, null);
         if (!preview.CanCommit)
@@ -58,7 +65,7 @@ public class CommitImportCommandHandler(IApplicationDbContext db)
             Scope = request.Scope,
             TargetId = request.TargetId,
             FileName = request.File.FileName,
-            FileHash = ImportMapping.Sha256(request.File.Content),
+            FileHash = ImportDtoMapping.Sha256(request.File.Content),
         };
         db.ImportBatches.Add(batch);
 
@@ -177,4 +184,56 @@ public class GetImportBatchesQueryHandler(IApplicationDbContext db)
         .OrderByDescending(b => b.CreatedAt)
         .Select(b => b.ToDto())
         .ToList();
+}
+
+public class InspectImportQueryHandler : IRequestHandler<InspectImportQuery, FileInspectionDto>
+{
+    /// <summary>Enough of the file to recognise it by eye, and no more.</summary>
+    private const int PreviewRows = 25;
+
+    /// <summary>
+    /// Above this a column is data, not a category — there is nothing to map value by value.
+    /// </summary>
+    private const int CategoryLimit = 12;
+
+    public Task<FileInspectionDto> Handle(InspectImportQuery request, CancellationToken cancellationToken)
+    {
+        if (!SourceFile.TryReadGrid(request.File.Content, out var grid, out var problem))
+            return Task.FromResult(new FileInspectionDto(request.File.FileName, [], 0, [], [], false, problem));
+
+        if (SourceFile.LooksCanonical(grid))
+        {
+            return Task.FromResult(new FileInspectionDto(
+                request.File.FileName, [.. grid.Take(PreviewRows)], 0, [], [], true, null));
+        }
+
+        var suggestion = GridMapper.Suggest(grid);
+        var width = grid.Count == 0 ? 0 : grid.Max(r => r.Length);
+
+        // Computed over the whole file, not just the rows shown: the value that decides the
+        // direction of a row may not appear until line 300.
+        var distinct = new Dictionary<int, List<string>>();
+        for (var column = 0; column < width; column++)
+        {
+            var values = grid
+                .Skip(suggestion.HeaderRow + 1)
+                .Where(r => column < r.Length && !string.IsNullOrWhiteSpace(r[column]))
+                .Select(r => r[column].Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(CategoryLimit + 1)
+                .ToList();
+
+            if (values.Count is > 0 and <= CategoryLimit)
+                distinct[column] = values;
+        }
+
+        return Task.FromResult(new FileInspectionDto(
+            request.File.FileName,
+            [.. grid.Take(PreviewRows)],
+            suggestion.HeaderRow,
+            suggestion.Columns,
+            distinct,
+            false,
+            null));
+    }
 }

@@ -168,3 +168,150 @@
   color: var(--danger);
   border-color: var(--danger);
 }
+
+/* The raw top of the file, shown as it is so the header row can be recognised by eye. */
+.gridPreview {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.gridPreview table {
+  border-collapse: collapse;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.gridPreview td {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-dim);
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gridPreview tr {
+  cursor: pointer;
+}
+
+.gridPreview tr:hover td {
+  background: var(--surface-hover);
+}
+
+.headerRowActive td {
+  background: var(--accent-dim);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.rowNumber {
+  color: var(--text-faint) !important;
+  font-variant-numeric: tabular-nums;
+  position: sticky;
+  left: 0;
+  background: var(--surface);
+}
+
+.mapGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.mapField {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-dim);
+  min-width: 0;
+}
+
+.mapField select,
+.wideSelect {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  color: var(--text);
+  outline: none;
+  max-width: 100%;
+}
+
+.wideSelect {
+  width: 100%;
+}
+
+.eventSource {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.eventTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.sourceTabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.sourceTab,
+.sourceTabActive {
+  border-radius: var(--radius-sm);
+  padding: 7px 12px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-dim);
+}
+
+.sourceTabActive {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.valueRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.rawValue {
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signRow {
+  display: flex;
+  gap: 10px;
+}
+
+.signRow > .mapField {
+  flex: 1;
+}
+
+.backToMapping {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0;
+}

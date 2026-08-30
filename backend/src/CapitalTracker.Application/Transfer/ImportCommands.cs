@@ -52,11 +52,31 @@ public record ImportPreviewDto(
 
 public record ImportFile(string FileName, byte[] Content);
 
+/// <summary>
+/// A first look at an unknown file: the top of the grid as it actually is, plus a guess at
+/// which row is the header and which column is which. Nothing is imported from this — it
+/// exists so the owner has something to correct rather than a blank form to fill in.
+/// </summary>
+public record FileInspectionDto(
+    string FileName,
+    List<string[]> Rows,
+    int HeaderRow,
+    Dictionary<string, int> Columns,
+    // Columns with few enough distinct values to be a category — where the direction of a
+    // row usually hides ("кредит"/"дебет", BUY/SELL).
+    Dictionary<int, List<string>> DistinctValues,
+    bool LooksCanonical,
+    string? Problem);
+
+public record InspectImportQuery(ImportFile File) : IRequest<FileInspectionDto>;
+
 public record PreviewImportCommand(
     ImportFile File,
     TransferScope Scope,
     Guid? TargetId,
-    ImportOptions Options) : IRequest<ImportPreviewDto>;
+    ImportOptions Options,
+    // Null when the file is already in our format — see SourceFile.LooksCanonical.
+    ImportMapping? Mapping = null) : IRequest<ImportPreviewDto>;
 
 public record ImportResultDto(Guid BatchId, ImportPreviewDto Preview);
 
@@ -64,13 +84,14 @@ public record CommitImportCommand(
     ImportFile File,
     TransferScope Scope,
     Guid? TargetId,
-    ImportOptions Options) : IRequest<ImportResultDto>;
+    ImportOptions Options,
+    ImportMapping? Mapping = null) : IRequest<ImportResultDto>;
 
 public record UndoImportCommand(Guid BatchId) : IRequest<bool>;
 
 public record GetImportBatchesQuery : IRequest<List<ImportBatchDto>>;
 
-internal static class ImportMapping
+internal static class ImportDtoMapping
 {
     public static string Sha256(byte[] content) => Convert.ToHexString(SHA256.HashData(content));
 

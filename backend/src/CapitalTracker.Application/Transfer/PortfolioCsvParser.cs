@@ -45,10 +45,20 @@ public static class PortfolioCsvParser
 
     public static ParsedCsv Parse(string text)
     {
+        var stripped = CsvReader.StripBom(text);
+        return ParseGrid(CsvReader.Read(stripped, CsvReader.DetectDelimiter(stripped)));
+    }
+
+    /// <summary>
+    /// The entry point everything shares. A foreign statement becomes a grid with our
+    /// headers first (see GridMapper) and lands here, so every rule below — validation,
+    /// derived numbers, cash-flow shaping — applies to it unchanged.
+    /// </summary>
+    public static ParsedCsv ParseGrid(List<string[]> grid)
+    {
         var events = new List<ImportedEvent>();
         var problems = new List<ImportProblem>();
 
-        var grid = CsvReader.Read(CsvReader.StripBom(text), CsvReader.DetectDelimiter(CsvReader.StripBom(text)));
         if (grid.Count == 0)
         {
             problems.Add(new ImportProblem(0, "Файл порожній."));
@@ -239,8 +249,37 @@ public static class PortfolioCsvParser
         // Statements often carry a time alongside the date; only the day matters here.
         var datePart = raw.Split(' ', 'T')[0];
 
-        return DateOnly.TryParseExact(datePart, DateFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out date)
-            || DateOnly.TryParse(datePart, CultureInfo.InvariantCulture, DateTimeStyles.None, out date);
+        if (DateOnly.TryParseExact(datePart, DateFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out date)
+            || DateOnly.TryParse(datePart, CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
+        {
+            return true;
+        }
+
+        return TryReadExcelSerial(datePart, out date);
+    }
+
+    /// <summary>
+    /// Excel stores a date as days since 1899-12-30 and only the cell's format says so, which
+    /// the reader deliberately doesn't chase. Recognising it here instead keeps the guess in
+    /// one place and bounded: it applies only where a date was expected and nothing else
+    /// parsed. The range keeps it away from both ordinary numbers and yyyyMMdd, which is far
+    /// above it.
+    /// </summary>
+    private static bool TryReadExcelSerial(string raw, out DateOnly date)
+    {
+        date = default;
+
+        if (raw.Length == 8 && DateOnly.TryParseExact(raw, "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
+            return true;
+
+        if (!decimal.TryParse(raw, NumberStyles.Number, CultureInfo.InvariantCulture, out var serial))
+            return false;
+
+        if (serial is < 1000m or > 80000m)
+            return false;
+
+        date = DateOnly.FromDateTime(new DateTime(1899, 12, 30).AddDays((double)serial));
+        return true;
     }
 
     private static decimal? TryReadNumber(string? raw, int line, string what, List<ImportProblem> problems)

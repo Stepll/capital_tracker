@@ -1,4 +1,6 @@
 using System.Text;
+using System.Text.Json;
+using CapitalTracker.Application.Common;
 using CapitalTracker.Application.Transfer;
 using CapitalTracker.Domain.Enums;
 using MediatR;
@@ -17,8 +19,23 @@ public class ImportRequest
     public bool ReplaceOpeningPositions { get; init; }
     public bool AddMissingOpeningPositions { get; init; }
 
+    /// <summary>
+    /// How a foreign statement lines up with our columns, as JSON — a form field rather than
+    /// a body, because the file it describes is going up as multipart alongside it. Absent
+    /// when the file is already in our own format.
+    /// </summary>
+    public string? Mapping { get; init; }
+
     public ImportOptions ToOptions() =>
         new(SkipDuplicateRows, ReplaceOpeningPositions, AddMissingOpeningPositions);
+
+    public ImportMapping? ToMapping() =>
+        string.IsNullOrWhiteSpace(Mapping)
+            ? null
+            : JsonSerializer.Deserialize<ImportMapping>(Mapping, JsonOptions)
+              ?? throw new DomainValidationException("Не вдалося прочитати зіставлення колонок.");
+
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 }
 
 [ApiController]
@@ -33,6 +50,10 @@ public class TransferController(ISender sender) : ControllerBase
 
     [HttpGet("holdings/{id:guid}/export")]
     public Task<IActionResult> ExportHolding(Guid id) => ExportAsync(TransferScope.Holding, id);
+
+    [HttpPost("import/inspect")]
+    public async Task<ActionResult<FileInspectionDto>> Inspect([FromForm] ImportRequest request) =>
+        Ok(await sender.Send(new InspectImportQuery(await ReadAsync(request))));
 
     [HttpPost("import/preview")]
     public Task<ActionResult<ImportPreviewDto>> PreviewPortfolio([FromForm] ImportRequest request) =>
@@ -73,14 +94,16 @@ public class TransferController(ISender sender) : ControllerBase
         ImportRequest request, TransferScope scope, Guid? targetId)
     {
         var file = await ReadAsync(request);
-        return Ok(await sender.Send(new PreviewImportCommand(file, scope, targetId, request.ToOptions())));
+        return Ok(await sender.Send(
+            new PreviewImportCommand(file, scope, targetId, request.ToOptions(), request.ToMapping())));
     }
 
     private async Task<ActionResult<ImportResultDto>> CommitAsync(
         ImportRequest request, TransferScope scope, Guid? targetId)
     {
         var file = await ReadAsync(request);
-        return Ok(await sender.Send(new CommitImportCommand(file, scope, targetId, request.ToOptions())));
+        return Ok(await sender.Send(
+            new CommitImportCommand(file, scope, targetId, request.ToOptions(), request.ToMapping())));
     }
 
     private static async Task<ImportFile> ReadAsync(ImportRequest request)

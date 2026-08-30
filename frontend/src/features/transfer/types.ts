@@ -73,3 +73,56 @@ export function transferBasePath(scope: TransferScope, targetId?: string): strin
   if (scope === "Holding") return `/holdings/${targetId}`;
   return "";
 }
+
+export interface FileInspection {
+  fileName: string;
+  /** The top of the file exactly as it is, so the header row can be picked by eye. */
+  rows: string[][];
+  headerRow: number;
+  columns: Record<string, number>;
+  /** Column index (as a JSON key) -> its distinct values, when few enough to be a category. */
+  distinctValues: Record<string, string[]>;
+  /** Our own export coming back: no mapping to fill in. */
+  looksCanonical: boolean;
+  problem: string | null;
+}
+
+export interface EventMapping {
+  column?: number | null;
+  values?: Record<string, string> | null;
+  fixed?: string | null;
+  whenPositive?: string | null;
+  whenNegative?: string | null;
+}
+
+export interface ColumnMapping {
+  headerRow: number;
+  columns: Record<string, number>;
+  event: EventMapping;
+}
+
+/** The canonical columns worth pointing a foreign statement at. */
+export const MAPPABLE_FIELDS = [
+  "Дата",
+  "Сума",
+  "Кількість",
+  "Ціна",
+  "Валюта",
+  "Актив",
+  "Тікер",
+  "Нотатка",
+] as const;
+
+export const EVENT_LABELS = [
+  "Купівля",
+  "Продаж",
+  "Дивіденди",
+  "Оренда",
+  "Витрата",
+  "Внесення",
+  "Виведення",
+  "Оцінка",
+] as const;
+
+/** Where the direction of a row comes from — different in every real statement. */
+export type EventSource = "column" | "sign" | "fixed";
