@@ -42,9 +42,11 @@ public class GetHoldingByIdQueryHandler(IApplicationDbContext db, IOptions<Insig
 
         // Units held, folded from the transactions — the holding carries no quantity of
         // its own any more, so this is what the header and PricingMode below read.
-        var quantity = HoldingPositions.Of(await db.Transactions
+        var transactions = await db.Transactions
             .Where(t => t.HoldingId == holding.Id)
-            .ToListAsync(cancellationToken));
+            .ToListAsync(cancellationToken);
+        var quantity = HoldingPositions.Of(transactions);
+        var closure = PositionClosure.Closure(transactions);
 
         var pricingMode = MarketPricing.ModeFor(holding.Symbol, account.Type, quantity);
         var latest = snapshots.LastOrDefault();
@@ -90,6 +92,8 @@ public class GetHoldingByIdQueryHandler(IApplicationDbContext db, IOptions<Insig
             nextAnalysisAvailableAt,
             holding.DeletedAt,
             ValuationFreshness.Age(
-                latest?.Date, account.Type, pricingMode, DateOnly.FromDateTime(DateTime.UtcNow)));
+                latest?.Date, account.Type, pricingMode, DateOnly.FromDateTime(DateTime.UtcNow)),
+            closure?.Date,
+            closure?.Amount);
     }
 }

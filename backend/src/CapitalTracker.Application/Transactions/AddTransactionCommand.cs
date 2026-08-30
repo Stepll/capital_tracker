@@ -1,5 +1,6 @@
 using CapitalTracker.Application.Common;
 using CapitalTracker.Application.Common.Interfaces;
+using CapitalTracker.Application.Holdings;
 using CapitalTracker.Domain.Entities;
 using CapitalTracker.Domain.Enums;
 using MediatR;
@@ -60,6 +61,10 @@ public class AddTransactionCommandHandler(IApplicationDbContext db)
         TransactionRules.EnsurePositionStaysNonNegative(existing, transaction);
 
         db.Transactions.Add(transaction);
+        await db.SaveChangesAsync(cancellationToken);
+
+        // A sale that empties the position writes the valuation that follows from it: zero.
+        await PositionClosure.SyncAsync(db, holding.Id, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
 
         return transaction.ToDto(holding.Name);

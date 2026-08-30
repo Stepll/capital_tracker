@@ -1,4 +1,5 @@
 using CapitalTracker.Application.Common.Interfaces;
+using CapitalTracker.Application.Holdings;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,6 +23,10 @@ public class DeleteTransactionCommandHandler(IApplicationDbContext db)
             return false;
 
         db.Transactions.Remove(transaction);
+        await db.SaveChangesAsync(cancellationToken);
+
+        // Deleting the sale that closed a position re-opens it, and takes the zero with it.
+        await PositionClosure.SyncAsync(db, transaction.HoldingId, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         return true;
     }

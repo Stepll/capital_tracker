@@ -75,6 +75,8 @@ public class CreateHoldingCommandHandler(IApplicationDbContext db)
         return new HoldingDto(
             holding.Id, holding.AccountId, holding.Name, holding.Symbol,
             account.Currency, request.InitialValue, holding.CreatedAt, today,
-            new ValuationAgeDto(today, 0, ValuationStatus.Fresh));
+            // A brand new holding is neither closed nor stale.
+            ClosedOn: null,
+            ValuationAge: new ValuationAgeDto(today, 0, ValuationStatus.Fresh));
     }
 }

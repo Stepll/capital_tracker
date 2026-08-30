@@ -62,6 +62,7 @@ internal static class HoldingQueries
                 .FirstOrDefault(),
             // Spelled out rather than left to the parameter's default: an expression tree
             // can't call a constructor with optional arguments omitted.
+            null,
             null));
     }
 
@@ -77,9 +78,11 @@ internal static class HoldingQueries
         CancellationToken cancellationToken)
     {
         var ids = holdings.Select(h => h.Id).ToList();
-        var positions = HoldingPositions.ByHolding(await db.Transactions
+        var transactions = await db.Transactions
             .Where(t => ids.Contains(t.HoldingId))
-            .ToListAsync(cancellationToken));
+            .ToListAsync(cancellationToken);
+        var positions = HoldingPositions.ByHolding(transactions);
+        var byHolding = transactions.ToLookup(t => t.HoldingId);
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
@@ -92,6 +95,7 @@ internal static class HoldingQueries
                     MarketPricing.ModeFor(
                         h.Symbol, account.Type, positions.TryGetValue(h.Id, out var units) ? units : null),
                     today),
+                ClosedOn = PositionClosure.Closure([.. byHolding[h.Id]])?.Date,
             })
             .ToList();
     }

@@ -1,4 +1,5 @@
 using CapitalTracker.Application.Common.Interfaces;
+using CapitalTracker.Application.Holdings;
 using CapitalTracker.Domain.Entities;
 using CapitalTracker.Domain.Enums;
 using MediatR;
@@ -130,6 +131,13 @@ public class CommitImportCommandHandler(IApplicationDbContext db)
             // A Видалення row closes the holding out, the same soft delete the UI performs.
             if (planned.DeletedOn is not null)
                 holding.DeletedAt = planned.DeletedOn.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        foreach (var planned in plan.Holdings)
+        {
+            await PositionClosure.SyncAsync(db, planned.HoldingId, cancellationToken);
         }
 
         await db.SaveChangesAsync(cancellationToken);

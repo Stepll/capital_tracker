@@ -35,6 +35,9 @@ export interface HoldingDetail {
   deletedAt: string | null;
   /** How out of date `currentValue` is, and whose job it is to fix that. */
   valuationAge: ValuationAge;
+  /** Set once the position was sold out: when it closed and what the sale came to. */
+  closedOn: string | null;
+  closedAmount: number | null;
 }
 
 export function useHoldingDetail(id: string | undefined) {

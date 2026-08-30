@@ -60,6 +60,13 @@ export function HoldingDetailPage() {
             {holding.quantity ? ` · ${holding.quantity} од.` : ""}
           </p>
         )}
+        {holding.closedOn !== null && (
+          <p className={styles.closedBanner}>
+            Позицію закрито {deletedFormatter.format(new Date(holding.closedOn))} на суму{" "}
+            {(holding.closedAmount ?? 0).toLocaleString("uk-UA")} {holding.currency}. Відтоді актив
+            не враховується в капіталі — історія до цієї дати збережена.
+          </p>
+        )}
         {isDeleted && (
           <p className={styles.deletedBanner}>
             Актив видалено {deletedFormatter.format(new Date(holding.deletedAt!))} — сторінка лишається

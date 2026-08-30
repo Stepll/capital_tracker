@@ -14,6 +14,7 @@ export function HoldingRow({ holding, onDelete }: Props) {
       <div className={styles.info}>
         <span className={styles.name}>{holding.name}</span>
         {holding.symbol && <span className={styles.symbol}>{holding.symbol}</span>}
+        {holding.closedOn !== null && <span className={styles.closedTag}>продано</span>}
         {/* The reminder follows you to the page you would go to in order to act on it —
             dropping it here would lose it exactly when it becomes actionable. */}
         {holding.valuationAge && staleBadge(holding.valuationAge) && (

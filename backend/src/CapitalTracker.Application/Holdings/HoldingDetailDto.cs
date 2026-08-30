@@ -36,4 +36,8 @@ public record HoldingDetailDto(
     DateTime? DeletedAt,
     // How out of date the value above is, and whether the owner or the price job is the
     // one who has to do something about it.
-    ValuationAgeDto ValuationAge);
+    ValuationAgeDto ValuationAge,
+    // Set once the position has been sold out: when it closed and what the closing
+    // transaction came to. The value above is zero from that day on, which is the point.
+    DateOnly? ClosedOn,
+    decimal? ClosedAmount);

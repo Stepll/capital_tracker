@@ -392,3 +392,17 @@
 .staleAlert {
   color: var(--danger);
 }
+
+/* Says why the value above is zero. Same shape as the deleted banner — both explain a page
+   whose numbers are deliberately not what they were. */
+.closedBanner {
+  margin: 0.5rem 0 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}

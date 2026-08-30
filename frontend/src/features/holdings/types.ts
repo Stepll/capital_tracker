@@ -10,4 +10,6 @@ export interface Holding {
   createdAt: string;
   lastValuedOn: string | null;
   valuationAge: ValuationAge | null;
+  /** Set once the position was sold out — from that day the asset is worth nothing. */
+  closedOn: string | null;
 }

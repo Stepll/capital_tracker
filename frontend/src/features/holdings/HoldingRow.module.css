@@ -84,3 +84,13 @@
 .staleAlert {
   color: var(--danger);
 }
+
+.closedTag {
+  font-size: 11px;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-faint);
+  margin-top: 2px;
+  width: fit-content;
+}

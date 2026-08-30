@@ -1,5 +1,6 @@
 using CapitalTracker.Application.Common;
 using CapitalTracker.Application.Common.Interfaces;
+using CapitalTracker.Application.Holdings;
 using CapitalTracker.Domain.Entities;
 using CapitalTracker.Domain.Enums;
 using MediatR;
@@ -63,6 +64,10 @@ public class UpdateTransactionCommandHandler(IApplicationDbContext db)
         transaction.Currency = edited.Currency;
         transaction.Notes = edited.Notes;
 
+        await db.SaveChangesAsync(cancellationToken);
+
+        // An edit can both close a position and re-open one that was closed.
+        await PositionClosure.SyncAsync(db, transaction.HoldingId, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
 
         return transaction.ToDto(holding.Name);
