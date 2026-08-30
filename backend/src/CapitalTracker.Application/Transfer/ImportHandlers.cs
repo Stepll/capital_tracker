@@ -199,12 +199,12 @@ public class InspectImportQueryHandler : IRequestHandler<InspectImportQuery, Fil
     public Task<FileInspectionDto> Handle(InspectImportQuery request, CancellationToken cancellationToken)
     {
         if (!SourceFile.TryReadGrid(request.File.Content, out var grid, out var problem))
-            return Task.FromResult(new FileInspectionDto(request.File.FileName, [], 0, [], [], false, problem));
+            return Task.FromResult(new FileInspectionDto(request.File.FileName, [], 0, [], [], null, false, problem));
 
         if (SourceFile.LooksCanonical(grid))
         {
             return Task.FromResult(new FileInspectionDto(
-                request.File.FileName, [.. grid.Take(PreviewRows)], 0, [], [], true, null));
+                request.File.FileName, [.. grid.Take(PreviewRows)], 0, [], [], null, true, null));
         }
 
         var suggestion = GridMapper.Suggest(grid);
@@ -233,6 +233,7 @@ public class InspectImportQueryHandler : IRequestHandler<InspectImportQuery, Fil
             suggestion.HeaderRow,
             suggestion.Columns,
             distinct,
+            suggestion.HeaderRow < grid.Count ? GridMapper.FindBalanceColumn(grid[suggestion.HeaderRow]) : null,
             false,
             null));
     }

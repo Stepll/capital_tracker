@@ -148,6 +148,24 @@ public static class GridMapper
     ];
 
     /// <summary>
+    /// The running balance a bank prints beside every operation. Looked up separately from
+    /// the hints above, because it is not what "Сума" means on an ordinary row — it only
+    /// becomes the number of interest when the file is read as balances rather than
+    /// transactions.
+    /// </summary>
+    public static int? FindBalanceColumn(string[] header)
+    {
+        for (var i = 0; i < header.Length; i++)
+        {
+            var name = Normalise(header[i]);
+            if (name.Contains("залишок") || name.Contains("balance"))
+                return i;
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// The header is the first row that reads like one: several non-empty cells, and text
     /// rather than numbers. A letterhead line has one or two filled cells; the table's
     /// header has most of them.

@@ -82,6 +82,8 @@ export interface FileInspection {
   columns: Record<string, number>;
   /** Column index (as a JSON key) -> its distinct values, when few enough to be a category. */
   distinctValues: Record<string, string[]>;
+  /** The running balance column, when the statement prints one. */
+  balanceColumn: number | null;
   /** Our own export coming back: no mapping to fill in. */
   looksCanonical: boolean;
   problem: string | null;
@@ -125,4 +127,4 @@ export const EVENT_LABELS = [
 ] as const;
 
 /** Where the direction of a row comes from — different in every real statement. */
-export type EventSource = "column" | "sign" | "fixed";
+export type EventSource = "column" | "sign" | "fixed" | "balance";

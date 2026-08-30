@@ -32,24 +32,39 @@ export function MappingStep({ inspection, mapping, onChange }: Props) {
     return name.length > 0 ? `${index + 1}. ${name}` : `${index + 1}. (без назви)`;
   };
 
-  const source: EventSource = mapping.event.column != null ? "column" : mapping.event.fixed != null ? "fixed" : "sign";
+  const hasBalance = inspection.balanceColumn !== null;
+  const source: EventSource =
+    mapping.event.column != null
+      ? "column"
+      : mapping.event.fixed === "Оцінка" && hasBalance
+        ? "balance"
+        : mapping.event.fixed != null
+          ? "fixed"
+          : "sign";
   const eventValues = mapping.event.column != null ? inspection.distinctValues[String(mapping.event.column)] ?? [] : [];
 
   const setEvent = (patch: Partial<ColumnMapping["event"]>) =>
     onChange({ ...mapping, event: { ...mapping.event, ...patch } });
 
-  const chooseSource = (next: EventSource) =>
-    onChange({
-      ...mapping,
-      // Cleared rather than merged: leaving a stale column behind would keep deciding the
-      // direction after the owner has said it comes from somewhere else.
-      event:
-        next === "column"
-          ? { column: mapping.event.column ?? 0, values: {} }
-          : next === "sign"
-            ? { whenPositive: "Внесення", whenNegative: "Виведення" }
-            : { fixed: "Купівля" },
-    });
+  const chooseSource = (next: EventSource) => {
+    // Cleared rather than merged: leaving a stale column behind would keep deciding the
+    // direction after the owner has said it comes from somewhere else.
+    const event =
+      next === "column"
+        ? { column: mapping.event.column ?? 0, values: {} }
+        : next === "sign"
+          ? { whenPositive: "Внесення", whenNegative: "Виведення" }
+          : { fixed: next === "balance" ? "Оцінка" : "Купівля" };
+
+    // Reading balances means the number of interest is the running total, not the amount
+    // of each operation — so the column moves with the mode.
+    const columns =
+      next === "balance" && inspection.balanceColumn !== null
+        ? { ...mapping.columns, "Сума": inspection.balanceColumn }
+        : mapping.columns;
+
+    onChange({ ...mapping, columns, event });
+  };
 
   return (
     <>
@@ -111,6 +126,7 @@ export function MappingStep({ inspection, mapping, onChange }: Props) {
               ["column", "З колонки"],
               ["sign", "Зі знаку суми"],
               ["fixed", "Усі рядки однакові"],
+              ...(hasBalance ? ([["balance", "Лише залишок"]] as [EventSource, string][]) : []),
             ] as [EventSource, string][]
           ).map(([value, label]) => (
             <button
@@ -192,6 +208,14 @@ export function MappingStep({ inspection, mapping, onChange }: Props) {
               </select>
             </label>
           </div>
+        )}
+
+        {source === "balance" && (
+          <p className={modal.hint}>
+            Кожен рядок стане оцінкою вартості рахунку, а не транзакцією. Якщо за один день
+            кілька операцій — візьмемо останню. Саме це має сенс тягнути з банківської виписки:
+            сотня оплат у кав'ярнях капіталу не описує, а залишок описує.
+          </p>
         )}
 
         {source === "fixed" && (

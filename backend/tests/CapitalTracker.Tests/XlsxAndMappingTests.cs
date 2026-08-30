@@ -168,6 +168,56 @@ public class XlsxAndMappingTests
         Assert.True(SourceFile.LooksCanonical(grid));
     }
 
+    [Fact]
+    public void A_bank_statement_read_as_balances_gives_one_valuation_per_day_and_no_transactions()
+    {
+        // What a card statement is actually worth to a capital tracker: not a hundred café
+        // payments, but what the account was worth on each of those days.
+        List<string[]> grid =
+        [
+            ["Дата", "Опис", "Залишок"],
+            ["2026-01-10", "Оплата", "5000"],
+            ["2026-01-11", "Оплата", "4800"],
+        ];
+
+        var mapping = new ImportMapping(
+            0,
+            new Dictionary<string, int> { ["Дата"] = 0, ["Нотатка"] = 1, ["Сума"] = 2 },
+            new EventMapping(Fixed: "Оцінка"));
+
+        var parsed = PortfolioCsvParser.ParseGrid(GridMapper.ToCanonical(grid, mapping));
+
+        Assert.Empty(parsed.Problems);
+        Assert.All(parsed.Events, e => Assert.Equal(ImportedEventKind.Valuation, e.Kind));
+        Assert.Equal([5000m, 4800m], parsed.Events.Select(e => e.Amount));
+    }
+
+    [Fact]
+    public void In_a_newest_first_statement_the_days_closing_balance_wins()
+    {
+        // Banks print newest first, and only the last row for a date becomes that day's
+        // valuation. Read in the file's own order that would hand over the day's opening
+        // balance instead of the one it closed on.
+        List<string[]> grid =
+        [
+            ["Дата", "Залишок"],
+            ["2026-01-11", "4800"],
+            ["2026-01-10", "5000"],
+            ["2026-01-10", "5300"],
+        ];
+
+        var mapping = new ImportMapping(
+            0,
+            new Dictionary<string, int> { ["Дата"] = 0, ["Сума"] = 1 },
+            new EventMapping(Fixed: "Оцінка"));
+
+        var parsed = PortfolioCsvParser.ParseGrid(GridMapper.ToCanonical(grid, mapping));
+
+        // 5300 came first in the file, so chronologically it is the earlier of the two.
+        var tenth = parsed.Events.Where(e => e.Date == new DateOnly(2026, 1, 10)).ToList();
+        Assert.Equal([5300m, 5000m], tenth.Select(e => e.Amount));
+    }
+
     /// <summary>
     /// A minimal xlsx: the parts this reader actually consults, written by hand so the tests
     /// exercise the real path — shared strings, the workbook relationship, sparse cells —

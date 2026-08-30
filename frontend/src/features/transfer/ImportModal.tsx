@@ -171,6 +171,18 @@ function initialMapping(inspection: FileInspection): ColumnMapping {
     .map(Number)
     .find((index) => /вид операці|тип|type|side/i.test(header[index] ?? ""));
 
+  // A running balance wins over a type column when both exist. A statement that prints one
+  // is a bank statement, and reading a bank statement as a hundred individual payments
+  // describes nothing about capital — its balance does. It is also the smaller, more
+  // additive import of the two, and the other reading is one click away in the preview.
+  if (inspection.balanceColumn !== null) {
+    return {
+      headerRow: inspection.headerRow,
+      columns: { ...inspection.columns, "Сума": inspection.balanceColumn },
+      event: { fixed: "Оцінка" },
+    };
+  }
+
   return {
     headerRow: inspection.headerRow,
     columns: inspection.columns,

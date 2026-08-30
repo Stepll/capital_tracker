@@ -159,7 +159,23 @@ public static class PortfolioCsvParser
             events.Add(Normalise(parsed));
         }
 
-        return new ParsedCsv(events, problems);
+        return new ParsedCsv(Chronological(events), problems);
+    }
+
+    /// <summary>
+    /// Statements are usually printed newest first, and that matters for exactly one thing:
+    /// when several rows share a date, only the last of them becomes that day's valuation.
+    /// Read in the file's own order, a descending statement would hand over the day's
+    /// *first* balance instead of its closing one. Position is a net sum and doesn't care
+    /// about order, so normalising here is free everywhere else.
+    /// </summary>
+    private static List<ImportedEvent> Chronological(List<ImportedEvent> events)
+    {
+        if (events.Count < 2 || events[0].Date <= events[^1].Date)
+            return events;
+
+        events.Reverse();
+        return events;
     }
 
     private static string? Validate(ImportedEvent e) => e.Kind switch

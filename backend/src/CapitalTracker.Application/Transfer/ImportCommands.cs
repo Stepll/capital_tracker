@@ -65,6 +65,9 @@ public record FileInspectionDto(
     // Columns with few enough distinct values to be a category — where the direction of a
     // row usually hides ("кредит"/"дебет", BUY/SELL).
     Dictionary<int, List<string>> DistinctValues,
+    // The running balance column, when the file has one — a bank statement is usually worth
+    // reading as "what the account was worth each day" rather than as a hundred payments.
+    int? BalanceColumn,
     bool LooksCanonical,
     string? Problem);
 
