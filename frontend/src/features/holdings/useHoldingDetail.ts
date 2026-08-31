@@ -8,6 +8,20 @@ export interface ValuationPoint {
   value: number;
 }
 
+export interface HoldingReturn {
+  /** Gross cost of everything ever bought — what the percentage is measured against. */
+  invested: number;
+  /** What the units still held cost, at their running average price. */
+  costBasis: number;
+  unrealised: number;
+  realised: number;
+  /** Dividends and rent, less expenses booked against the asset. */
+  income: number;
+  total: number;
+  /** Null until something has been bought — nothing to divide by. */
+  totalPercent: number | null;
+}
+
 export interface HoldingDetail {
   id: string;
   accountId: string;
@@ -38,6 +52,8 @@ export interface HoldingDetail {
   /** Set once the position was sold out: when it closed and what the sale came to. */
   closedOn: string | null;
   closedAmount: number | null;
+  /** What it earned, as opposed to what it is worth — in the same currency as currentValue. */
+  return: HoldingReturn;
 }
 
 export function useHoldingDetail(id: string | undefined) {

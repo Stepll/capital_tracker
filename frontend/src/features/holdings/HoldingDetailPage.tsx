@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { useHoldingDetail, useAddValuation } from "./useHoldingDetail";
 import { HoldingAttributesSection } from "./HoldingAttributesSection";
 import { HoldingInsightsPanel } from "./HoldingInsightsPanel";
+import { HoldingReturnSection } from "./HoldingReturnSection";
 import { TransactionList } from "../transactions/TransactionList";
 import { TransactionFormModal } from "../transactions/TransactionFormModal";
 import { useDeleteTransaction, useHoldingTransactions } from "../transactions/useTransactions";
@@ -46,9 +47,13 @@ export function HoldingDetailPage() {
     setValuationCurrency(null);
   };
 
+  // Return against what was actually paid, when that is known. The older reading — today's
+  // value against the first valuation ever recorded — stays as the fallback for assets that
+  // were never bought through a transaction.
   const firstValue = holding.valuationHistory[0]?.value;
   const change =
-    firstValue && firstValue !== 0 ? ((holding.currentValue - firstValue) / firstValue) * 100 : null;
+    holding.return.totalPercent ??
+    (firstValue && firstValue !== 0 ? ((holding.currentValue - firstValue) / firstValue) * 100 : null);
 
   return (
     <div className={styles.page}>
@@ -180,6 +185,8 @@ export function HoldingDetailPage() {
             : "Кількість одиниць рахується з цих транзакцій, окремого поля для неї немає."}
         </p>
       </section>
+
+      <HoldingReturnSection holding={holding} />
 
       <HoldingAttributesSection key={holding.id} holding={holding} readOnly={isDeleted} />
 

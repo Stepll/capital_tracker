@@ -40,4 +40,6 @@ public record HoldingDetailDto(
     // Set once the position has been sold out: when it closed and what the closing
     // transaction came to. The value above is zero from that day on, which is the point.
     DateOnly? ClosedOn,
-    decimal? ClosedAmount);
+    decimal? ClosedAmount,
+    // What it earned, as opposed to what it is worth — in the same currency as CurrentValue.
+    HoldingReturnDto Return);
