@@ -1,6 +1,7 @@
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import type { PieLabelRenderProps } from "recharts";
 import type { Slice } from "./chartColors";
+import { useIsNarrow } from "./useIsNarrow";
 import styles from "./Charts.module.css";
 
 /** Below this the label has nowhere to sit without touching its neighbour; the legend
@@ -59,17 +60,20 @@ export function DonutChart({ slices, currency, size = "normal", emptyMessage }: 
     return <p className={styles.empty}>{emptyMessage ?? "Ще немає активів для розподілу."}</p>;
   }
 
-  const isLarge = size === "large";
+  // On a phone there is no room outside the ring for a name and a percentage: the labels
+  // would be drawn past the card's edge. The legend still names every slice.
+  const narrow = useIsNarrow();
+  const isLarge = size === "large" && !narrow;
 
   return (
-    <ResponsiveContainer width="100%" height={isLarge ? 420 : 260}>
+    <ResponsiveContainer width="100%" height={narrow ? 280 : isLarge ? 420 : 260}>
       <PieChart>
         <Pie
           data={slices}
           dataKey="value"
           nameKey="name"
-          innerRadius={isLarge ? 100 : 60}
-          outerRadius={isLarge ? 160 : 95}
+          innerRadius={narrow ? 55 : isLarge ? 100 : 60}
+          outerRadius={narrow ? 88 : isLarge ? 160 : 95}
           paddingAngle={2}
           // Off deliberately: the donut re-mounts on every navigation and on every
           // refetch after a transaction is saved, and a pie that spins up each time
@@ -77,7 +81,7 @@ export function DonutChart({ slices, currency, size = "normal", emptyMessage }: 
           isAnimationActive={false}
           strokeWidth={2}
           stroke="var(--surface)"
-          label={SliceLabel}
+          label={narrow ? false : SliceLabel}
           labelLine={false}
         >
           {slices.map((slice) => (

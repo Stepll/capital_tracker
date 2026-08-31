@@ -55,6 +55,9 @@
 }
 
 .balance {
+  /* "13 450" and "USD" belong together — on a phone the card is narrow enough to break
+     between them otherwise. */
+  white-space: nowrap;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }

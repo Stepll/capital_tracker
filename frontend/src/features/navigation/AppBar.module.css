@@ -15,6 +15,10 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  /* Without this the row of actions makes the bar wider than the screen, and since every
+     page is centred inside the document, *everything* below it gets pushed off to the
+     right — which is exactly what a phone showed. */
+  min-width: 0;
 }
 
 .back,
@@ -117,11 +121,29 @@
 }
 
 @media (max-width: 640px) {
+  /* Five links do not fit beside a path on a phone, so they take a line of their own and
+     scroll within it rather than stretching the document. */
+  .inner {
+    height: auto;
+    min-height: var(--appbar-height);
+    padding: 8px 16px;
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+
   .actions {
+    margin-left: 0;
     gap: 0;
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .actions::-webkit-scrollbar {
+    display: none;
   }
 
   .action {
-    padding: 8px;
+    padding: 8px 10px;
   }
 }

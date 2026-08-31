@@ -70,6 +70,9 @@
 .updateRow {
   display: flex;
   gap: 8px;
+  /* Date, amount, currency and a button do not fit on one line on a phone — without this
+     the row pushes the whole document out to 573px. */
+  flex-wrap: wrap;
 }
 
 .updateRow input {
