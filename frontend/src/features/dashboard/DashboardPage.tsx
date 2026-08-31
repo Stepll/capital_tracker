@@ -5,6 +5,7 @@ import { AddAccountModal } from "../accounts/AddAccountModal";
 import { useDashboardSummary } from "./useDashboardSummary";
 import { AllocationChart } from "./AllocationChart";
 import { StaleValuationsNotice } from "./StaleValuationsNotice";
+import { ReturnBreakdown } from "../../shared/ui/ReturnBreakdown";
 import { ValueOverTimeChart } from "../../shared/ui/ValueOverTimeChart";
 import styles from "./DashboardPage.module.css";
 import chartStyles from "../../shared/ui/Charts.module.css";
@@ -28,11 +29,31 @@ export function DashboardPage() {
           <h1 className={styles.total}>
             {totalLabel} {currencySymbol}
           </h1>
+          {/* The headline says what is held; this says what of it was earned. */}
+          {summary && summary.return.totalPercent !== null && (
+            <p className={summary.return.total >= 0 ? styles.returnUp : styles.returnDown}>
+              {summary.return.total >= 0 ? "+" : "−"}
+              {Math.abs(summary.return.total).toLocaleString("uk-UA", { maximumFractionDigits: 0 })}{" "}
+              {currencySymbol} за весь час · {summary.return.totalPercent > 0 ? "+" : ""}
+              {summary.return.totalPercent.toLocaleString("uk-UA", { maximumFractionDigits: 1 })}%
+            </p>
+          )}
         </div>
       </header>
 
       {summary && (
         <StaleValuationsNotice stale={summary.staleValuations} totalNetWorth={summary.totalNetWorth} />
+      )}
+
+      {summary && summary.return.invested > 0 && (
+        <div className={chartStyles.card}>
+          <h2 className={chartStyles.cardTitle}>Результат портфеля</h2>
+          <ReturnBreakdown
+            result={summary.return}
+            currency={summary.currency}
+            hint="Кожна покупка переведена в цю валюту курсом на дату угоди, тож у результат входить і рух курсу."
+          />
+        </div>
       )}
 
       {summary && summary.allocationByType.length > 0 && (

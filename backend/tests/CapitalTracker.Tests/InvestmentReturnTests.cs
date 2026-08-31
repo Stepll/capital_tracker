@@ -5,7 +5,7 @@ using CapitalTracker.Domain.Enums;
 
 namespace CapitalTracker.Tests;
 
-public class HoldingReturnTests
+public class InvestmentReturnTests
 {
     private static readonly DateOnly Day = new(2026, 1, 10);
     private static readonly CurrencyConverter NoRates = CurrencyConverter.FromRates([]);
@@ -13,7 +13,7 @@ public class HoldingReturnTests
     [Fact]
     public void What_is_still_held_is_measured_against_what_it_cost()
     {
-        var result = HoldingReturn.Of([Buy(10m, 230m)], marketValue: 2600m, "USD", NoRates);
+        var result = InvestmentReturn.Of([Buy(10m, 230m)], marketValue: 2600m, "USD", NoRates);
 
         Assert.Equal(2300m, result.Invested);
         Assert.Equal(2300m, result.CostBasis);
@@ -28,7 +28,7 @@ public class HoldingReturnTests
     {
         // 10 at 200 and 10 at 300 is 20 units costing 250 each — the number people mean when
         // they ask what their position cost.
-        var result = HoldingReturn.Of([Buy(10m, 200m), Buy(10m, 300m)], marketValue: 6000m, "USD", NoRates);
+        var result = InvestmentReturn.Of([Buy(10m, 200m), Buy(10m, 300m)], marketValue: 6000m, "USD", NoRates);
 
         Assert.Equal(5000m, result.CostBasis);
         Assert.Equal(1000m, result.Unrealised);
@@ -39,7 +39,7 @@ public class HoldingReturnTests
     {
         // Average cost 250; selling 8 at 300 realises 8 x 50, and the cost of what remains
         // drops by what those eight units cost, not by what they sold for.
-        var result = HoldingReturn.Of(
+        var result = InvestmentReturn.Of(
             [Buy(10m, 200m), Buy(10m, 300m), Sell(8m, 300m)], marketValue: 3600m, "USD", NoRates);
 
         Assert.Equal(400m, result.Realised);
@@ -53,7 +53,7 @@ public class HoldingReturnTests
     {
         // Nothing is held, so nothing is unrealised — and the market value is zero anyway,
         // because closing the position wrote that valuation.
-        var result = HoldingReturn.Of(
+        var result = InvestmentReturn.Of(
             [Buy(10m, 230m), Sell(10m, 250m)], marketValue: 0m, "USD", NoRates);
 
         Assert.Equal(0m, result.CostBasis);
@@ -65,7 +65,7 @@ public class HoldingReturnTests
     [Fact]
     public void Dividends_and_rent_count_towards_the_result_and_expenses_against_it()
     {
-        var result = HoldingReturn.Of(
+        var result = InvestmentReturn.Of(
             [Buy(10m, 230m), Cash(TransactionType.Dividend, 45m), Cash(TransactionType.Expense, 15m)],
             marketValue: 2300m,
             "USD",
@@ -87,7 +87,7 @@ public class HoldingReturnTests
         ]);
 
         // Ten units at $200, bought on the day the dollar was 40.
-        var result = HoldingReturn.Of([Buy(10m, 200m, "USD")], marketValue: 88_000m, "UAH", rates);
+        var result = InvestmentReturn.Of([Buy(10m, 200m, "USD")], marketValue: 88_000m, "UAH", rates);
 
         Assert.Equal(80_000m, result.CostBasis);
         Assert.Equal(8_000m, result.Unrealised);
@@ -96,7 +96,7 @@ public class HoldingReturnTests
     [Fact]
     public void Nothing_bought_means_no_percentage_to_show()
     {
-        var result = HoldingReturn.Of([Cash(TransactionType.Rent, 12_000m)], marketValue: 0m, "UAH", NoRates);
+        var result = InvestmentReturn.Of([Cash(TransactionType.Rent, 12_000m)], marketValue: 0m, "UAH", NoRates);
 
         Assert.Null(result.TotalPercent);
         Assert.Equal(12_000m, result.Total);

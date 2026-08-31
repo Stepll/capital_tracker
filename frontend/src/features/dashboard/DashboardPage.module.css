@@ -81,3 +81,19 @@
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 10px;
 }
+
+/* Sits under the headline total. Sign and words carry the meaning; colour only reinforces. */
+.returnUp,
+.returnDown {
+  margin-top: 6px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.returnUp {
+  color: var(--success);
+}
+
+.returnDown {
+  color: var(--danger);
+}

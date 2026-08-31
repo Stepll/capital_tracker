@@ -62,7 +62,9 @@ public class GetDashboardSummaryQueryHandler(IApplicationDbContext db)
         // price job should be handling from one only the owner can update — the difference
         // decides which of two very different sentences the dashboard shows.
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var positions = HoldingPositions.ByHolding(await db.Transactions.ToListAsync(cancellationToken));
+        var allTransactions = await db.Transactions.ToListAsync(cancellationToken);
+        var transactionsByHolding = allTransactions.ToLookup(t => t.HoldingId);
+        var positions = HoldingPositions.ByHolding(allTransactions);
 
         var stale = holdings
             .Where(h => accountById.ContainsKey(h.AccountId))
@@ -91,6 +93,31 @@ public class GetDashboardSummaryQueryHandler(IApplicationDbContext db)
             .Select(p => new NetWorthPointDto(p.Date, p.Value))
             .ToList();
 
-        return new DashboardSummaryDto(total, displayCurrency, allocation, history, stale);
+        // Folded per holding and then added up, rather than over one flat pile of
+        // transactions: the average cost that a sale is measured against belongs to its own
+        // asset. Each fold is asked for its answer in the display currency, so every
+        // purchase is converted at the rate of the day it happened.
+        var returns = holdings
+            .Where(h => accountById.ContainsKey(h.AccountId))
+            .Select(h =>
+            {
+                var snapshot = snapshotsByHolding[h.Id].OrderByDescending(s => s.Date).FirstOrDefault();
+                var value = snapshot is null ? 0m : ToDisplay(snapshot.Value, snapshot.Currency);
+                return InvestmentReturn.Of(transactionsByHolding[h.Id], value, displayCurrency, converter);
+            })
+            .ToList();
+
+        var invested = returns.Sum(r => r.Invested);
+        var portfolioReturn = new InvestmentReturnDto(
+            invested,
+            returns.Sum(r => r.CostBasis),
+            returns.Sum(r => r.Unrealised),
+            returns.Sum(r => r.Realised),
+            returns.Sum(r => r.Income),
+            returns.Sum(r => r.Total),
+            invested > 0m ? Math.Round(returns.Sum(r => r.Total) / invested * 100m, 1) : null);
+
+        return new DashboardSummaryDto(
+            total, displayCurrency, allocation, history, portfolioReturn, stale);
     }
 }

@@ -1,0 +1,54 @@
+.grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 16px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.grid dt {
+  color: var(--text-dim);
+}
+
+.grid dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.totalLabel,
+.totalValue {
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-weight: 600;
+}
+
+.totalLabel {
+  color: var(--text) !important;
+}
+
+.percent {
+  margin-left: 8px;
+  color: var(--text-dim);
+  font-weight: 400;
+}
+
+/* Colour reinforces the sign that is already in the number, never replaces it. */
+.up {
+  color: var(--success);
+}
+
+.down {
+  color: var(--danger);
+}
+
+.neutral {
+  color: var(--text-dim);
+}
+
+.hint {
+  color: var(--text-faint);
+  font-size: 12px;
+  line-height: 1.45;
+}

@@ -9,6 +9,39 @@ public class GetDashboardSummaryQueryTests
     private static readonly DateOnly Today = DateOnly.FromDateTime(DateTime.UtcNow);
 
     [Fact]
+    public async Task The_portfolio_result_counts_a_dollar_purchase_at_the_rate_of_its_own_day()
+    {
+        // The whole reason this is folded in the display currency rather than summed from
+        // per-asset answers: buying $100 when the dollar was 40 cost 4000 hryvnia, and that
+        // is what the portfolio invested — not what those dollars would cost today.
+        await using var db = TestDbContext.Create();
+
+        var account = AddAccount(db, "USD");
+        var holding = AddHolding(db, account);
+        AddSnapshot(db, holding, 100m, "USD");
+        AddRate(db, "USD", 40m, daysAgo: 5);
+        AddRate(db, "USD", 44m);
+        db.Transactions.Add(new Transaction
+        {
+            Id = Guid.NewGuid(),
+            HoldingId = holding.Id,
+            Type = TransactionType.Buy,
+            Date = Today.AddDays(-5),
+            Quantity = 1m,
+            UnitPrice = 100m,
+            Currency = "USD",
+        });
+        await db.SaveChangesAsync(default);
+
+        var result = await Run(db, displayCurrency: "UAH");
+
+        Assert.Equal(4000m, result.Return.Invested);
+        // Worth 4400 today against 4000 put in.
+        Assert.Equal(400m, result.Return.Unrealised);
+        Assert.Equal(10.0m, result.Return.TotalPercent);
+    }
+
+    [Fact]
     public async Task Prices_every_history_point_at_the_rate_of_its_own_date()
     {
         // The production bug this guards: the whole series was converted at today's rate,

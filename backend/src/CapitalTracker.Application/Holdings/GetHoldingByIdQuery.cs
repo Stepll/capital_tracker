@@ -95,6 +95,6 @@ public class GetHoldingByIdQueryHandler(IApplicationDbContext db, IOptions<Insig
                 latest?.Date, account.Type, pricingMode, DateOnly.FromDateTime(DateTime.UtcNow)),
             closure?.Date,
             closure?.Amount,
-            HoldingReturn.Of(transactions, latest?.Value ?? 0m, currency, converter));
+            InvestmentReturn.Of(transactions, latest?.Value ?? 0m, currency, converter));
     }
 }

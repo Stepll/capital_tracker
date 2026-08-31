@@ -1,13 +1,12 @@
-using CapitalTracker.Application.Common;
 using CapitalTracker.Domain.Entities;
 using CapitalTracker.Domain.Enums;
 
-namespace CapitalTracker.Application.Holdings;
+namespace CapitalTracker.Application.Common;
 
 /// <summary>
 /// What an asset has actually earned, as opposed to what it is worth.
 /// </summary>
-public record HoldingReturnDto(
+public record InvestmentReturnDto(
     /// <summary>Gross cost of everything ever bought — the denominator of the percentage.</summary>
     decimal Invested,
     /// <summary>What the units still held cost, at their running average price.</summary>
@@ -26,14 +25,15 @@ public record HoldingReturnDto(
 /// Average cost rather than FIFO: without lot tracking FIFO would be a guess dressed up as
 /// precision, and for a personal portfolio the average is the number people actually mean.
 ///
-/// Everything is expressed in the holding's own denomination — the same currency the value
+/// Used for one asset and for the whole portfolio alike — the difference is only which
+/// currency it is asked to answer in. Everything is expressed in the target denomination — the same currency the value
 /// beside it is shown in. A transaction booked in some other currency is converted at the
 /// rate of its own date, the same rule the history chart follows: what it cost is what it
 /// cost that day, not what that sum would be worth now.
 /// </summary>
-public static class HoldingReturn
+public static class InvestmentReturn
 {
-    public static HoldingReturnDto Of(
+    public static InvestmentReturnDto Of(
         IEnumerable<Transaction> transactions,
         decimal marketValue,
         string denomination,
@@ -92,7 +92,7 @@ public static class HoldingReturn
         var unrealised = units > 0m ? marketValue - costBasis : 0m;
         var total = unrealised + realised + income;
 
-        return new HoldingReturnDto(
+        return new InvestmentReturnDto(
             Math.Round(invested, 2),
             Math.Round(units > 0m ? costBasis : 0m, 2),
             Math.Round(unrealised, 2),

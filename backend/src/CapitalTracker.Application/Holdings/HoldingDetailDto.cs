@@ -42,4 +42,4 @@ public record HoldingDetailDto(
     DateOnly? ClosedOn,
     decimal? ClosedAmount,
     // What it earned, as opposed to what it is worth — in the same currency as CurrentValue.
-    HoldingReturnDto Return);
+    InvestmentReturnDto Return);

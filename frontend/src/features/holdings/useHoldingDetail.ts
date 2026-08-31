@@ -2,24 +2,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../shared/api/client";
 import type { AccountType } from "../accounts/types";
 import type { ValuationAge } from "../../shared/ui/valuationAge";
+import type { InvestmentReturn } from "../../shared/ui/ReturnBreakdown";
 
 export interface ValuationPoint {
   date: string;
   value: number;
-}
-
-export interface HoldingReturn {
-  /** Gross cost of everything ever bought — what the percentage is measured against. */
-  invested: number;
-  /** What the units still held cost, at their running average price. */
-  costBasis: number;
-  unrealised: number;
-  realised: number;
-  /** Dividends and rent, less expenses booked against the asset. */
-  income: number;
-  total: number;
-  /** Null until something has been bought — nothing to divide by. */
-  totalPercent: number | null;
 }
 
 export interface HoldingDetail {
@@ -53,7 +40,7 @@ export interface HoldingDetail {
   closedOn: string | null;
   closedAmount: number | null;
   /** What it earned, as opposed to what it is worth — in the same currency as currentValue. */
-  return: HoldingReturn;
+  return: InvestmentReturn;
 }
 
 export function useHoldingDetail(id: string | undefined) {

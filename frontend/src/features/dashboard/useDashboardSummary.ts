@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../shared/api/client";
 import type { AccountType } from "../accounts/types";
 import type { ValuationAge } from "../../shared/ui/valuationAge";
+import type { InvestmentReturn } from "../../shared/ui/ReturnBreakdown";
 
 export interface AllocationItem {
   type: AccountType;
@@ -27,6 +28,8 @@ export interface DashboardSummary {
   currency: string;
   allocationByType: AllocationItem[];
   netWorthHistory: NetWorthPoint[];
+  /** The same breakdown an asset shows, summed across the portfolio in the display currency. */
+  return: InvestmentReturn;
   staleValuations: StaleValuation[];
 }
 
